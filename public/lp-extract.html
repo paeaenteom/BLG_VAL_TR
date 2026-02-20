@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>BLG LP 에이전트·MVP 추출기 v4</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0e1015;color:#e0e0e0;font-family:'Segoe UI',system-ui,sans-serif;padding:20px;max-width:1200px;margin:0 auto}
+h1{font-size:20px;color:#4d8bff;margin-bottom:4px}
+.sub{font-size:12px;color:#666;margin-bottom:20px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+button{padding:8px 18px;border-radius:6px;border:1px solid #333;background:#1a1d24;color:#e0e0e0;cursor:pointer;font-size:12px;font-family:inherit;transition:all .15s}
+button:hover{background:#252830;border-color:#4d8bff}
+button:disabled{opacity:.4;cursor:not-allowed}
+.btn-go{background:#4d8bff;border-color:#4d8bff;color:#fff;font-weight:600;font-size:13px;padding:10px 24px}
+.btn-go:hover{background:#3a78e6}
+.btn-copy{background:rgba(0,229,160,.12);border-color:rgba(0,229,160,.3);color:#00e5a0}
+.btn-dl{background:rgba(77,139,255,.12);border-color:rgba(77,139,255,.3);color:#4d8bff}
+.progress-bar{width:100%;height:4px;background:#1a1d24;border-radius:2px;margin-bottom:12px;overflow:hidden}
+.progress-fill{height:100%;background:#4d8bff;transition:width .3s;width:0%}
+.log-box{background:#12141a;border:1px solid #252830;border-radius:8px;padding:12px;margin-bottom:16px;font-family:'JetBrains Mono',Consolas,monospace;font-size:11px;max-height:500px;overflow-y:auto;line-height:1.6}
+.log-box .ok{color:#00e5a0}.log-box .err{color:#ff4d6a}.log-box .info{color:#4d8bff}.log-box .warn{color:#ffb84d}.log-box .dim{color:#555}
+.stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.stat{background:#1a1d24;border:1px solid #252830;border-radius:8px;padding:12px 18px;min-width:120px}
+.stat-n{font-size:24px;font-weight:700;color:#4d8bff}.stat-l{font-size:10px;color:#666;margin-top:2px}
+.results{margin-bottom:16px}
+.yr-group{margin-bottom:8px}
+.yr-hdr{font-size:13px;font-weight:600;color:#ffb84d;padding:8px 12px;background:#1a1d24;border:1px solid #252830;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.yr-hdr:hover{background:#1e2128}
+.yr-hdr .cnt{font-size:11px;color:#666;font-weight:400}
+.yr-body{background:#12141a;border:1px solid #252830;border-top:0;border-radius:0 0 6px 6px;max-height:0;overflow:hidden;transition:max-height .3s}
+.yr-body.open{max-height:12000px;overflow-y:auto}
+.match-row{padding:8px 12px;border-bottom:1px solid #1a1d24;font-size:11px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.match-row:hover{background:rgba(77,139,255,.04)}
+.m-date{color:#888;font-family:monospace;min-width:82px}.m-opp{color:#e0e0e0;font-weight:500;min-width:100px}
+.m-score{font-weight:700;min-width:38px;text-align:center}.w{color:#00e5a0}.l{color:#ff4d6a}
+.m-tourn{color:#555;font-size:10px;flex:1;min-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-tag{font-size:9px;padding:2px 6px;border-radius:3px}
+.tag-ok{background:rgba(0,229,160,.15);color:#00e5a0}.tag-no{background:rgba(255,255,255,.05);color:#555}
+.map-line{padding:3px 12px 3px 92px;font-size:10px;color:#777;display:flex;gap:8px;align-items:center;border-bottom:1px solid rgba(255,255,255,.02)}
+.map-line .mn{color:#999;font-weight:500;min-width:55px}.map-line .ms{font-family:monospace;min-width:35px}
+.map-line .ags{font-size:9px;flex:1}.map-line .ba{color:#88c0d0}.map-line .oa{color:#bf616a}
+.map-line .mvp{color:#ffb84d;font-size:9px}
+.output-box{background:#12141a;border:1px solid #252830;border-radius:8px;margin-bottom:16px}
+.output-hdr{padding:12px 16px;border-bottom:1px solid #252830;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.output-hdr span{font-size:13px;font-weight:600;color:#e0e0e0}
+.output-actions{display:flex;gap:6px}
+textarea{width:100%;min-height:300px;padding:12px;font-family:'JetBrains Mono',Consolas,monospace;font-size:10px;background:transparent;color:#888;border:none;resize:vertical;outline:none}
+</style>
+</head>
+<body>
+<h1>📡 BLG LP 에이전트·MVP 추출기 v4</h1>
+<p class="sub">링크 기반 팀명 추출 + 퍼지매칭</p>
+
+<div class="controls">
+  <button class="btn-go" id="btnStart" onclick="startExtract()">🚀 추출 시작</button>
+  <span style="font-size:12px;color:#999" id="statusText">대기 중</span>
+</div>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+<div class="log-box" id="logBox"><div class="dim">추출 버튼을 눌러 시작하세요...</div></div>
+
+<div class="stats" id="statsBar" style="display:none">
+  <div class="stat"><div class="stat-n" id="statMatch">0</div><div class="stat-l">전체 매치</div></div>
+  <div class="stat"><div class="stat-n" id="statTourn">0</div><div class="stat-l">대회 페이지</div></div>
+  <div class="stat"><div class="stat-n" id="statAgent">0</div><div class="stat-l">에이전트 매칭</div></div>
+  <div class="stat"><div class="stat-n" id="statMaps">0</div><div class="stat-l">맵 (에이전트)</div></div>
+</div>
+
+<div class="results" id="resultsBox"></div>
+
+<div class="output-box" id="outputBox" style="display:none">
+  <div class="output-hdr">
+    <span>📋 LP_AGENT_DATA</span>
+    <div class="output-actions">
+      <button class="btn-copy" onclick="copyOutput()">📋 복사</button>
+      <button class="btn-dl" onclick="dlOutput()">💾 JS 다운로드</button>
+    </div>
+  </div>
+  <textarea id="outputCode" readonly></textarea>
+</div>
+
+<script>
+const LIQ_API='https://liquipedia.net/valorant/api.php';
+const AGENTS=['Jett','Raze','Phoenix','Reyna','Yoru','Neon','Iso','Waylay','Sova','Breach','Skye','KAY/O','Fade','Gekko','Tejo','Killjoy','Cypher','Sage','Chamber','Deadlock','Vyse','Brimstone','Omen','Viper','Astra','Harbor','Clove'];
+const AGENT_NAMES_LOW=new Set(AGENTS.map(a=>a.toLowerCase()));
+const MAPS=['Ascent','Bind','Breeze','Fracture','Haven','Icebox','Lotus','Pearl','Split','Sunset','Abyss','Corrode'];
+const MAP_NAMES_LOW=new Set(MAPS.map(m=>m.toLowerCase()));
+const BLG_RE=/bilibili|blg/i;
+
+/* ══ 에이전트 이미지 → 이름 매핑 ══ */
+function agentFromImg(img){
+  const src=(img.getAttribute('src')||'').toLowerCase();
+  if(!src.includes('valorant_icon'))return null;
+
+  const alt=(img.getAttribute('alt')||'').toLowerCase();
+  const title=(img.getAttribute('title')||'').toLowerCase();
+
+  // title/alt 직접 매치 (가장 신뢰)
+  for(const agent of AGENTS){
+    const low=agent.toLowerCase();
+    if(title===low||alt===low)return agent;
+  }
+
+  // src 파일명 매치
+  const combined=src+' '+alt+' '+title;
+  for(const agent of AGENTS){
+    const low=agent.toLowerCase();
+    const noslash=low.replace('/','');
+    const dash=low.replace('/','-');
+    if(combined.includes(noslash)||combined.includes(dash))return agent;
+  }
+
+  // 파일명에서 추출: /AgentName_0.50_VALORANT_Icon.png
+  const fnMatch=src.match(/\/([a-z][a-z0-9_-]+?)(?:_[\d.]+)?_valorant_icon/i);
+  if(fnMatch){
+    const fn=fnMatch[1].toLowerCase().replace(/[_-]/g,'');
+    for(const agent of AGENTS){
+      if(fn===agent.toLowerCase().replace(/[/\s-]/g,''))return agent;
+    }
+  }
+  return null;
+}
+
+/* ══ 팀명 퍼지매칭 ══ */
+const TEAM_ALIASES={
+  'te':['trace','traceesports','trace esports'],
+  'ag':['allgamers','all gamers'],
+  'edg':['edwardgaming','edward gaming'],
+  'fpx':['funplusphoenix','funplus phoenix'],
+  'drx':['drx'],
+  'drg':['dragonrangergaming','dragon ranger gaming','dragonranger','dragon ranger'],
+  'nter':['nter','shenzhennter'],
+  'tyl':['tyloo'],
+  'wol':['wolves','wolvesesports','wolves esports'],
+  'xlg':['xlgesports','xlg esports'],
+  'nv':['nova','novaesports','nova esports'],
+  'jdg':['jdgaming','jd gaming'],
+  'tec':['titanesportsclub','titan esports club','titan'],
+  'ase':['attackingsoulesports','attacking soul esports','attackingsoul'],
+  'lgd':['lgdgaming','lgd gaming'],
+  'rng':['royalnevergiveup','royal never give up'],
+  'ra':['rareatom','rare atom'],
+  'ig':['invictusgaming','invictus gaming'],
+  'nrg':['nrgesports','nrg esports'],
+  'fnc':['fnatic'],
+  'sen':['sentinels'],
+  'tl':['teamliquid','team liquid'],
+  'g2':['g2esports','g2 esports'],
+  'prx':['paperrex','paper rex'],
+  'kc':['karminecorp','karmine corp'],
+  'krü':['kru','kruesports','krü esports'],
+  'mibr':['mibr','madeinbrazil'],
+  'rrq':['rexregumqeon','rex regum qeon'],
+  'lev':['leviatan','leviatán'],
+  'gen':['geng','gen.g'],
+  'wbg':['weibogaming','weibo gaming','weibo'],
+  'nwg':['nightwingsgaming','night wings gaming','nightwings'],
+  'dyg':['dyg'],
+  'ttg':['thundertalkgaming','thunder talk gaming'],
+  'nip':['ninjasinpyjamas','ninjas in pyjamas'],
+  'me':['moonextra','moon extra'],
+  'nh':['nh'],
+  'kz':['kz'],
+  'gk':['gk'],
+  'o3o':['o3o'],
+  'vlg':['vlg'],
+  '4am':['4am','fourangrymen','four angry men'],
+  'nop':['nop','numberoneplayer','number one player'],
+  'jjh':['jjh','jijiehao'],
+  'inv':['invincible','invinciblegaming'],
+  'tes':['topesports','top esports'],
+};
+
+function norm(name){return name.toLowerCase().replace(/[^a-z0-9]/g,'').trim()}
+
+function teamsMatch(a,b){
+  const an=norm(a), bn=norm(b);
+  if(!an||!bn)return false;
+  if(an===bn)return true;
+  if(an.includes(bn)||bn.includes(an))return true;
+
+  for(const[abbr,aliases] of Object.entries(TEAM_ALIASES)){
+    const aN=norm(abbr);
+    const aMatch=(an===aN||aliases.some(x=>norm(x)===an));
+    const bMatch=(bn===aN||aliases.some(x=>norm(x)===bn));
+    if(aMatch&&bMatch)return true;
+  }
+  return false;
+}
+
+/* ══ API ══ */
+async function liqFetch(params){
+  params.format='json';params.origin='*';
+  const url=`${LIQ_API}?${new URLSearchParams(params)}`;
+  const r=await fetch(url,{signal:AbortSignal.timeout(45000)});
+  if(!r.ok)throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+/* ══════════════════════════════════════════
+   핵심 v4: 브라켓 팝업 파서
+   - .brkts-popup-header-opponent 대신
+     링크 href 기반 팀명 추출
+   ══════════════════════════════════════════ */
+function parseBracketPopups(html){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const found=[];
+  let popupCount=0, blgCount=0;
+
+  doc.querySelectorAll('.brkts-popup').forEach(popup=>{
+    // 게임이 있는 팝업만
+    const games=popup.querySelectorAll('.brkts-popup-body-game');
+    if(games.length===0)return;
+    popupCount++;
+
+    /* ── 팀명 추출: 팀 페이지 링크에서 ── */
+    // 팝업 내 모든 <a> 중 /valorant/TeamName 패턴인 것
+    const teamCandidates=[];
+    const seenNorm=new Set();
+
+    popup.querySelectorAll('a').forEach(a=>{
+      if(teamCandidates.length>=2)return;
+
+      const href=a.getAttribute('href')||'';
+      // /valorant/Team_Name 패턴 (하위 경로나 특수 페이지 제외)
+      const m=href.match(/\/valorant\/([A-Za-z0-9][A-Za-z0-9_()]+)$/);
+      if(!m)return;
+      const slug=m[1];
+
+      // 필터: 에이전트/맵/특수 페이지
+      if(/^(Match|Patch|Template|Module|Category|Special|File|Help|Liquipedia|Portal|index|VCT|Champions|Masters)/i.test(slug))return;
+      if(AGENT_NAMES_LOW.has(slug.toLowerCase().replace(/_/g,' ')))return;
+      if(MAP_NAMES_LOW.has(slug.toLowerCase()))return;
+
+      const name=a.getAttribute('title')||a.textContent.trim()||slug.replace(/_/g,' ');
+      if(name.length<2||name.length>40)return;
+      if(/^(Bo\d|Map Veto|Show|Hide|edit|MVP)$/i.test(name))return;
+
+      const n=norm(name);
+      if(seenNorm.has(n))return;
+      seenNorm.add(n);
+
+      teamCandidates.push(name);
+    });
+
+    if(teamCandidates.length<2){
+      // fallback: 로고 이미지의 title/alt
+      popup.querySelectorAll('img').forEach(img=>{
+        if(teamCandidates.length>=2)return;
+        const src=(img.getAttribute('src')||'').toLowerCase();
+        if(src.includes('valorant_icon'))return; // 에이전트 아이콘
+        const name=img.getAttribute('title')||img.getAttribute('alt')||'';
+        if(!name||name.length<2||name.length>40)return;
+        if(AGENT_NAMES_LOW.has(name.toLowerCase()))return;
+        if(MAP_NAMES_LOW.has(name.toLowerCase()))return;
+
+        const n=norm(name);
+        if(seenNorm.has(n))return;
+        seenNorm.add(n);
+        teamCandidates.push(name);
+      });
+    }
+
+    if(teamCandidates.length<2)return;
+
+    const team1=teamCandidates[0];
+    const team2=teamCandidates[1];
+    const isBLG1=BLG_RE.test(team1);
+    const isBLG2=BLG_RE.test(team2);
+    if(!isBLG1&&!isBLG2)return;
+    blgCount++;
+
+    const blgSide=isBLG1?1:2;
+    const opponent=isBLG1?team2:team1;
+
+    /* ── 날짜 ── */
+    let matchDate='';
+    popup.querySelectorAll('[data-timestamp]').forEach(el=>{
+      if(matchDate)return;
+      const ts=el.getAttribute('data-timestamp');
+      if(ts)matchDate=new Date(parseInt(ts)*1000).toISOString().split('T')[0];
+    });
+
+    /* ── 전체 스코어 ── */
+    let matchScore='';
+    // 팝업 헤더 영역에서 스코어 찾기
+    const hdr=popup.querySelector('.brkts-popup-header');
+    if(hdr){
+      const txt=hdr.textContent.replace(/\s+/g,' ');
+      const sm=txt.match(/(\d+)\s*[:\-–]\s*(\d+)/);
+      if(sm)matchScore=sm[1]+':'+sm[2];
+    }
+    if(!matchScore){
+      // 팝업 전체 텍스트에서 Bo 패턴 근처 스코어
+      const txt=popup.textContent.replace(/\s+/g,' ');
+      const sm=txt.match(/(\d+)\s*[:\-–]\s*(\d+)\s*\(\s*Bo\d/i);
+      if(sm)matchScore=sm[1]+':'+sm[2];
+    }
+
+    /* ── 게임(맵) 파싱 ── */
+    const maps=[];
+    games.forEach(game=>{
+      const g={map:'',t1agents:[],t2agents:[],score1:0,score2:0};
+
+      // 맵 이름: 링크 title 또는 텍스트
+      game.querySelectorAll('a').forEach(a=>{
+        if(g.map)return;
+        const txt=(a.getAttribute('title')||a.textContent||'').trim();
+        for(const mn of MAPS){
+          if(txt===mn){g.map=mn;return}
+        }
+      });
+      // fallback: span/div 텍스트
+      if(!g.map){
+        game.querySelectorAll('span,div,td').forEach(el=>{
+          if(g.map)return;
+          const txt=el.textContent.trim();
+          for(const mn of MAPS){
+            if(txt===mn){g.map=mn;return}
+          }
+        });
+      }
+
+      // 에이전트 이미지
+      const agents=[];
+      game.querySelectorAll('img').forEach(img=>{
+        const a=agentFromImg(img);
+        if(a)agents.push(a);
+      });
+
+      if(agents.length>=10){
+        g.t1agents=agents.slice(0,5);
+        g.t2agents=agents.slice(5,10);
+      } else if(agents.length>=5){
+        g.t1agents=agents.slice(0,5);
+        g.t2agents=agents.slice(5);
+      } else {
+        g.t1agents=agents;
+      }
+
+      // 라운드 스코어
+      const nums=[];
+      game.querySelectorAll('div,span,td').forEach(el=>{
+        if(el.children.length>3)return;
+        const txt=el.textContent?.trim();
+        if(txt&&/^\d{1,2}$/.test(txt)){
+          const n=parseInt(txt);
+          if(n>=0&&n<=25)nums.push(n);
+        }
+      });
+      if(nums.length>=2){
+        g.score1=nums[0];
+        g.score2=nums[nums.length>=4?nums.length-1:1];
+      }
+
+      if(agents.length>0||g.map)maps.push(g);
+    });
+
+    /* ── MVP ── */
+    let mvp='';
+    const mvpM=popup.textContent.match(/MVP[:\s]*([A-Za-z0-9_]+)/i);
+    if(mvpM&&mvpM[1]!=='Show'&&mvpM[1]!=='Map'){
+      mvp=mvpM[1].replace(/Map\d*$/,'').replace(/Game\d*$/,''); // strip trailing "Map1","Map","Game"
+    }
+
+    /* ── BLG 기준 정리 ── */
+    const finalMaps=maps.map(m=>({
+      map:m.map,
+      ba:blgSide===1?m.t1agents:m.t2agents,
+      oa:blgSide===1?m.t2agents:m.t1agents,
+      bs:blgSide===1?m.score1:m.score2,
+      os:blgSide===1?m.score2:m.score1,
+    })).filter(m=>m.ba.length>0||m.oa.length>0);
+
+    if(finalMaps.length>0){
+      found.push({date:matchDate, opp:opponent, score:matchScore, maps:finalMaps, mvp, _src:'bracket'});
+    }
+  });
+
+  return {found, popupCount, blgCount};
+}
+
+/* ══════════════════════════════════════════
+   1단계: Matches 테이블 파싱
+   ══════════════════════════════════════════ */
+function parseMatchesPage(html){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const matches=[];
+  const tournPages=new Set();
+  const monthMap={January:'01',February:'02',March:'03',April:'04',May:'05',June:'06',July:'07',August:'08',September:'09',October:'10',November:'11',December:'12'};
+
+  doc.querySelectorAll('tr').forEach(tr=>{
+    const cells=tr.querySelectorAll('td');
+    if(cells.length<5)return;
+    const c0=cells[0].textContent.trim();
+    const dm=c0.match(/(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})/);
+    if(!dm)return;
+    const date=`${dm[3]}-${monthMap[dm[1]]}-${dm[2].padStart(2,'0')}`;
+
+    let blgS=0,oppS=0,isBo1=false;
+    for(let i=1;i<cells.length;i++){
+      const t=cells[i].textContent.replace(/\s+/g,' ').trim();
+      const cm=t.match(/^(\d+)\s*:\s*(\d+)$/);
+      const dm2=t.match(/^(\d+)\s*-\s*(\d+)$/);
+      if(cm){blgS=+cm[1];oppS=+cm[2];break}
+      if(dm2&&(+dm2[1]>=3||+dm2[2]>=3)){blgS=+dm2[1];oppS=+dm2[2];isBo1=true;break}
+    }
+
+    let oppName='';
+    for(let i=1;i<cells.length;i++){
+      cells[i].querySelectorAll('a[href*="/valorant/"]').forEach(a=>{
+        const href=a.getAttribute('href')||'';
+        const text=a.textContent.trim();
+        if(!oppName && text.length>=2 && text.length<=30
+          && !href.includes('Tier') && !href.includes('Match:')
+          && !href.includes('index.php') && !href.includes('Special:')
+          && !BLG_RE.test(text)
+          && !/^https?:/.test(text)
+          && !/(VCT|Champions|Masters|EVO|Invitational|ACL|CEF|Esports|Shanghai|Radiant|SOOP|FGC|SVL|Qualifier|OQ|Play-In|Group|Playoffs|Kickoff|Stage|Week|Round|Knockouts|Seeding|commentator|caster|analyst)/i.test(text)){
+          // 팀 페이지 링크 또는 짧은 팀명
+          const pm=href.match(/\/valorant\/([A-Za-z0-9][A-Za-z0-9_().%-]*)$/);
+          if(pm){
+            const slug=pm[1];
+            if(!/(Patch_|Module:|Category:|Template:|statistics|Alan_)/i.test(slug)){
+              oppName=text;
+            }
+          }
+        }
+      });
+    }
+
+    let tournament='';
+    for(let i=1;i<cells.length;i++){
+      cells[i].querySelectorAll('a[href*="/valorant/"]').forEach(a=>{
+        const t=a.textContent.trim();
+        if(!tournament && t.length>5 && /(VCT|Champions|Masters|EVO|FGC|Invitational|ACL|CEF|Esports|Shanghai|Radiant|SOOP|SVL)/i.test(t)){
+          tournament=t;
+        }
+      });
+      if(tournament)break;
+    }
+    if(!tournament){
+      for(let i=2;i<Math.min(5,cells.length);i++){
+        const a=cells[i].querySelector('a');
+        if(a&&a.textContent.trim().length>5){tournament=a.textContent.trim();break}
+      }
+    }
+
+    // 대회 페이지 수집
+    tr.querySelectorAll('a[href*="/valorant/"]').forEach(a=>{
+      const href=a.getAttribute('href')||'';
+      const pm=href.match(/\/valorant\/([^#]+)/);
+      if(pm){
+        const basePage=pm[1].split('#')[0];
+        if(!basePage.includes('index.php')&&!basePage.includes('Tier')&&!basePage.includes('Match:')
+          &&!basePage.includes('Bilibili_Gaming')&&basePage.length>10){
+          tournPages.add(basePage);
+        }
+      }
+    });
+
+    let detailPage='';
+    tr.querySelectorAll('a[href*="Match:ID_"]').forEach(a=>{
+      const href=a.getAttribute('href')||'';
+      if(!href.includes('redlink=1')&&!href.includes('action=edit')){
+        const pm=href.match(/\/valorant\/(Match:ID_[^\s&#?]+)/);
+        if(pm)detailPage=pm[1];
+      }
+    });
+
+    if(oppName||blgS>0||oppS>0){
+    /* 하드코딩 폴백: LP에 팀 페이지 링크가 없는 소규모 팀 */
+    if(!oppName){
+      const fallback={
+        '2023-11-05':'NWG','2023-11-02':'VLG','2023-07-05':'ME',
+        '2023-05-03':'DYG','2023-04-22':'GK','2023-04-21':'KZ',
+        '2023-04-19':'NH','2023-04-16':'JJH','2023-04-14':'NOP',
+        '2023-03-05':'iNv',
+        '2024-06-30':'DRG','2024-07-06':'EDG',
+      };
+      oppName=fallback[date]||'';
+    }
+
+      matches.push({date, oppName:oppName||'?', blgScore:blgS, oppScore:oppS,
+        score:isBo1?`${blgS}-${oppS}`:`${blgS}:${oppS}`, tournament, detailPage, agentData:null});
+    }
+  });
+
+  return {matches, tournPages:[...tournPages]};
+}
+
+/* ══ UI ══ */
+const logBox=document.getElementById('logBox');
+function log(msg,cls=''){const d=document.createElement('div');if(cls)d.className=cls;d.textContent=msg;logBox.appendChild(d);logBox.scrollTop=logBox.scrollHeight}
+function setProgress(p){document.getElementById('progressFill').style.width=p+'%'}
+function setStatus(t){document.getElementById('statusText').textContent=t}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ══════════════════════════════════════════
+   메인
+   ══════════════════════════════════════════ */
+async function startExtract(){
+  document.getElementById('btnStart').disabled=true;
+  logBox.innerHTML='';
+  setProgress(0);setStatus('시작...');
+  document.getElementById('statsBar').style.display='flex';
+
+  /* ── 1단계 ── */
+  log('📡 1단계: Bilibili_Gaming/Matches 로드...','info');
+  let data;
+  try{data=await liqFetch({action:'parse',page:'Bilibili_Gaming/Matches',prop:'text'})}
+  catch(e){log(`❌ ${e.message}`,'err');document.getElementById('btnStart').disabled=false;return}
+
+  const {matches, tournPages}=parseMatchesPage(data.parse.text['*']);
+  log(`✅ ${matches.length}매치, ${tournPages.length}대회 페이지`,'ok');
+  document.getElementById('statMatch').textContent=matches.length;
+
+  // 서브페이지 확장
+  const allPages=new Set(tournPages);
+  tournPages.forEach(p=>{
+    if(!p.includes('Group_Stage')&&!p.includes('OQ')&&!p.includes('Play-In')&&!p.includes('Week'))
+      allPages.add(p+'/Group_Stage');
+  });
+  // VCT China League GS → 주차별 서브페이지 (Week_1~6)
+  [...allPages].forEach(p=>{
+    if(/China_League.*Group_Stage$/i.test(p)){
+      for(let w=1;w<=6;w++) allPages.add(p+'/Week_'+w);
+    }
+  });
+  const pageList=[...allPages];
+  log(`📋 대회 페이지 (서브 포함): ${pageList.length}개`,'info');
+  document.getElementById('statTourn').textContent=pageList.length;
+
+  /* ── 2단계 ── */
+  log('','');
+  log('📡 2단계: 대회 페이지 → 에이전트 추출...','info');
+
+  const allExtracted=[];
+  let fetchOk=0;
+
+  for(let i=0;i<pageList.length;i++){
+    const page=pageList[i];
+    setStatus(`2단계: ${i+1}/${pageList.length}`);
+    setProgress(10+(i/pageList.length)*70);
+
+    try{
+      const d=await liqFetch({action:'parse',page:page,prop:'text'});
+      if(d?.parse?.text?.['*']){
+        const {found, popupCount, blgCount}=parseBracketPopups(d.parse.text['*']);
+        const withAgents=found.filter(b=>b.maps.some(m=>m.ba.length>0));
+        if(withAgents.length>0){
+          allExtracted.push(...withAgents);
+          log(`  ✅ ${page} → ${withAgents.length}매치 (popups:${popupCount}, blg:${blgCount})`,'ok');
+          fetchOk++;
+        } else if(BLG_RE.test(d.parse.text['*'])){
+          log(`  ⬜ ${page} → BLG있지만 에이전트0 (popups:${popupCount}, blg:${blgCount})`,'dim');
+        }
+      }
+    }catch(e){
+      // 404/timeout
+    }
+
+    if(i<pageList.length-1)await sleep(2500);
+  }
+
+  log(`📊 ${allExtracted.length}매치 에이전트 추출 (${fetchOk}페이지)`, allExtracted.length>0?'ok':'err');
+
+  /* ── 2b: Match:ID ── */
+  const detailMatches=matches.filter(m=>m.detailPage);
+  if(detailMatches.length>0){
+    log('','');
+    log(`📡 2b: ${detailMatches.length}개 Match:ID...`,'info');
+    let ok2=0;
+    for(let i=0;i<detailMatches.length;i++){
+      const m=detailMatches[i];
+      setStatus(`2b: ${i+1}/${detailMatches.length}`);
+      try{
+        const d=await liqFetch({action:'parse',page:m.detailPage,prop:'text'});
+        if(d?.parse?.text?.['*']){
+          const {found}=parseBracketPopups(d.parse.text['*']);
+          if(found.length>0&&found[0].maps.some(g=>g.ba.length>0)){
+            if(!found[0].date)found[0].date=m.date;
+            if(!found[0].opp)found[0].opp=m.oppName;
+            allExtracted.push(found[0]);
+            ok2++;
+          }
+        }
+      }catch(e){}
+      if(i<detailMatches.length-1)await sleep(2500);
+    }
+    if(ok2>0)log(`  ✅ Match:ID에서 ${ok2}매치 추가`,'ok');
+  }
+
+  /* ── 3단계: 매칭 ── */
+  setProgress(85);setStatus('3단계: 매칭...');
+  log('','');
+  log(`🔗 3단계: 매칭 (${matches.length} ↔ ${allExtracted.length})...`,'info');
+
+  let agentMatched=0, totalMaps=0;
+
+  matches.forEach(m=>{
+    // 1순위: 날짜 + 팀명
+    let best=allExtracted.find(b=>!b._used && b.date===m.date && teamsMatch(m.oppName,b.opp));
+    // 2순위: ±1일 + 팀명
+    if(!best){
+      const d=new Date(m.date);
+      const prev=new Date(d-86400000).toISOString().split('T')[0];
+      const next=new Date(d.getTime()+86400000).toISOString().split('T')[0];
+      best=allExtracted.find(b=>!b._used && (b.date===prev||b.date===next) && teamsMatch(m.oppName,b.opp));
+    }
+    // 3순위: 날짜 + 스코어
+    if(!best){
+      best=allExtracted.find(b=>!b._used && b.date===m.date && b.score===m.score);
+    }
+    // 4순위: 날짜만 (해당 날짜에 미매칭이 1개뿐일 때)
+    if(!best){
+      const sameDateUnused=allExtracted.filter(b=>!b._used && b.date===m.date);
+      if(sameDateUnused.length===1)best=sameDateUnused[0];
+    }
+    // 5순위: ±1일 + 스코어
+    if(!best){
+      const d=new Date(m.date);
+      const prev=new Date(d-86400000).toISOString().split('T')[0];
+      const next=new Date(d.getTime()+86400000).toISOString().split('T')[0];
+      best=allExtracted.find(b=>!b._used && (b.date===prev||b.date===next) && b.score===m.score);
+    }
+
+    if(best){
+      m.agentData=best;
+      best._used=true;
+      agentMatched++;
+      totalMaps+=best.maps.length;
+    }
+  });
+
+  log(`✅ ${agentMatched}/${matches.length} 매칭 (맵 ${totalMaps}개)`, agentMatched>0?'ok':'err');
+  document.getElementById('statAgent').textContent=agentMatched;
+  document.getElementById('statMaps').textContent=totalMaps;
+
+  const unused=allExtracted.filter(b=>!b._used);
+  if(unused.length>0){
+    log(`  ⚠ 미매칭: ${unused.length}개`,'warn');
+    unused.slice(0,10).forEach(u=>log(`    ${u.date} vs ${u.opp} (${u.score})`,'dim'));
+  }
+
+  /* ── 4단계: 출력 ── */
+  setProgress(95);setStatus('출력...');
+  generateOutput(matches);
+  setProgress(100);setStatus('완료!');
+  log('','');
+  log('🎉 완료!','info');
+  document.getElementById('btnStart').disabled=false;
+}
+
+/* ══ 출력 ══ */
+function generateOutput(matches){
+  const rb=document.getElementById('resultsBox');
+  rb.innerHTML='';
+
+  const byYear={};
+  matches.forEach(m=>{const yr=m.date.slice(0,4);if(!byYear[yr])byYear[yr]=[];byYear[yr].push(m)});
+
+  for(const yr of Object.keys(byYear).sort()){
+    const grp=byYear[yr];
+    const wA=grp.filter(m=>m.agentData);
+    const div=document.createElement('div');
+    div.className='yr-group';
+    div.innerHTML=`<div class="yr-hdr" onclick="this.nextElementSibling.classList.toggle('open')">${yr} <span class="cnt">${wA.length}/${grp.length} 에이전트</span></div><div class="yr-body"></div>`;
+    const body=div.querySelector('.yr-body');
+
+    grp.forEach(m=>{
+      const won=m.blgScore>m.oppScore;
+      const has=!!m.agentData;
+      body.innerHTML+=`<div class="match-row">
+        <span class="m-date">${m.date}</span>
+        <span class="m-opp">${m.oppName}</span>
+        <span class="m-score ${won?'w':'l'}">${m.score}</span>
+        <span class="m-tourn">${m.tournament}</span>
+        <span class="m-tag ${has?'tag-ok':'tag-no'}">${has?'✓':'✗'}</span>
+      </div>`;
+
+      if(has){
+        m.agentData.maps.forEach(mp=>{
+          body.innerHTML+=`<div class="map-line">
+            <span class="mn">${mp.map||'?'}</span>
+            <span class="ms">${mp.bs}-${mp.os}</span>
+            <span class="ags"><span class="ba">${mp.ba.join(',')}</span> vs <span class="oa">${mp.oa.join(',')}</span></span>
+          </div>`;
+        });
+        if(m.agentData.mvp) body.innerHTML+=`<div class="map-line"><span class="mvp">MVP: ${m.agentData.mvp}</span></div>`;
+      }
+    });
+    rb.appendChild(div);
+  }
+
+  // JS 출력
+  const lines=[];
+  lines.push('// BLG Liquipedia Agent+MVP Data (v4)');
+  lines.push(`// Generated: ${new Date().toISOString()}`);
+  const wA=matches.filter(m=>m.agentData);
+  const tM=wA.reduce((s,m)=>s+m.agentData.maps.length,0);
+  lines.push(`// ${matches.length} matches, ${wA.length} with agents, ${tM} maps`);
+  lines.push('const LP_AGENT_DATA={');
+
+  matches.forEach(m=>{
+    const key=`${m.date}_${m.oppName}`;
+    if(m.agentData){
+      const d=m.agentData;
+      const ms=d.maps.map(mp=>`{map:"${mp.map}",ba:${JSON.stringify(mp.ba)},oa:${JSON.stringify(mp.oa)},bs:${mp.bs},os:${mp.os}}`).join(',\n  ');
+      lines.push(`"${key}":{score:"${m.score}",tournament:"${m.tournament}",mvp:"${d.mvp||''}",maps:[\n  ${ms}\n]},`);
+    } else {
+      lines.push(`"${key}":{score:"${m.score}",tournament:"${m.tournament}",mvp:"",maps:[\n]},`);
+    }
+  });
+  lines.push('};');
+
+  document.getElementById('outputBox').style.display='';
+  document.getElementById('outputCode').value=lines.join('\n');
+}
+
+function copyOutput(){document.getElementById('outputCode').select();document.execCommand('copy');log('📋 복사 완료','ok')}
+function dlOutput(){
+  const b=new Blob([document.getElementById('outputCode').value],{type:'text/javascript'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='lp-agent-data.js';a.click();
+}
+</script>
+</body>
+</html>

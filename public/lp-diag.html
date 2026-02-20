@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>LP API 진단</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0e1015;color:#e0e0e0;font-family:monospace;padding:20px;max-width:1400px;margin:0 auto}
+h1{color:#4d8bff;margin-bottom:10px;font-size:18px}
+.btn{background:#4d8bff;color:#fff;border:none;padding:8px 20px;border-radius:4px;cursor:pointer;margin:4px}
+.log{background:#1a1d24;padding:10px;border-radius:6px;margin:10px 0;white-space:pre-wrap;font-size:12px;max-height:600px;overflow:auto;line-height:1.6}
+.ok{color:#4caf50}.err{color:#f44336}.warn{color:#ff9800}.info{color:#4d8bff}
+textarea{width:100%;height:300px;background:#1a1d24;color:#e0e0e0;border:1px solid #333;font-size:11px;padding:8px;margin:6px 0}
+</style>
+</head>
+<body>
+<h1>🔍 Liquipedia API 진단 도구</h1>
+<p>API가 실제로 뭘 반환하는지 확인합니다</p>
+
+<div style="margin:10px 0">
+  <button class="btn" onclick="diagnose('VCT/2026/China_League/Kickoff')">VCT 2026 Kickoff 진단</button>
+  <button class="btn" onclick="diagnose('VCT/2025/China_League/Stage_2')">VCT 2025 Stage 2 진단</button>
+  <button class="btn" onclick="diagnose('Champions/2023')">Champions 2023 진단</button>
+  <button class="btn" onclick="diagnoseCustom()">커스텀 페이지</button>
+  <input id="customPage" placeholder="페이지명 (예: VCT/2024/China_League/Stage_1/Group_Stage)" style="padding:6px;width:400px;background:#1a1d24;color:#e0e0e0;border:1px solid #333">
+</div>
+
+<div class="log" id="logBox">진단 버튼을 눌러 시작...</div>
+<h3 style="margin-top:10px">Raw HTML (처음 5000자)</h3>
+<textarea id="rawHtml" readonly></textarea>
+<h3>Agent 이미지 패턴 검색 결과</h3>
+<textarea id="agentResults" readonly></textarea>
+
+<script>
+const LIQ_API='https://liquipedia.net/valorant/api.php';
+const logBox=document.getElementById('logBox');
+const rawHtml=document.getElementById('rawHtml');
+const agentResults=document.getElementById('agentResults');
+
+function log(msg, cls=''){
+  const d=document.createElement('div');
+  if(cls)d.className=cls;
+  d.textContent=msg;
+  logBox.appendChild(d);
+  logBox.scrollTop=logBox.scrollHeight;
+}
+
+function diagnoseCustom(){
+  const p=document.getElementById('customPage').value.trim();
+  if(p)diagnose(p);
+}
+
+async function diagnose(page){
+  logBox.innerHTML='';
+  rawHtml.value='';
+  agentResults.value='';
+
+  log(`📡 Fetching: ${page}`, 'info');
+  
+  try{
+    const params=new URLSearchParams({action:'parse',page:page,prop:'text',format:'json',origin:'*'});
+    const url=`${LIQ_API}?${params}`;
+    log(`URL: ${url}`, '');
+    
+    const r=await fetch(url,{signal:AbortSignal.timeout(30000)});
+    log(`HTTP Status: ${r.status}`, r.ok?'ok':'err');
+    
+    if(!r.ok){
+      const txt=await r.text();
+      log(`Error body: ${txt.slice(0,500)}`, 'err');
+      return;
+    }
+    
+    const data=await r.json();
+    
+    if(data.error){
+      log(`API Error: ${JSON.stringify(data.error)}`, 'err');
+      return;
+    }
+    
+    if(!data.parse?.text?.['*']){
+      log('❌ data.parse.text["*"] 없음!', 'err');
+      log(`Keys: ${JSON.stringify(Object.keys(data))}`, 'warn');
+      if(data.parse) log(`parse keys: ${JSON.stringify(Object.keys(data.parse))}`, 'warn');
+      return;
+    }
+    
+    const html=data.parse.text['*'];
+    log(`✅ HTML 받음: ${html.length}자`, 'ok');
+    rawHtml.value=html.slice(0,5000);
+    
+    // ===== 구조 분석 =====
+    log('','');
+    log('═══ HTML 구조 분석 ═══', 'info');
+    
+    // 1. brkts-popup 체크
+    const popupMatches=(html.match(/brkts-popup/g)||[]);
+    log(`"brkts-popup" 발견 횟수: ${popupMatches.length}`, popupMatches.length>0?'ok':'err');
+    
+    const popupHeaderOpp=(html.match(/brkts-popup-header-opponent/g)||[]);
+    log(`"brkts-popup-header-opponent": ${popupHeaderOpp.length}`, popupHeaderOpp.length>0?'ok':'warn');
+    
+    const popupBodyGame=(html.match(/brkts-popup-body-game/g)||[]);
+    log(`"brkts-popup-body-game": ${popupBodyGame.length}`, popupBodyGame.length>0?'ok':'warn');
+    
+    // 2. VALORANT_Icon 이미지 체크
+    const valIcons=(html.match(/VALORANT_Icon/gi)||[]);
+    log(`"VALORANT_Icon" 이미지: ${valIcons.length}`, valIcons.length>0?'ok':'err');
+    
+    // 3. 구체적 에이전트 이미지 패턴
+    const agentImgs=[...html.matchAll(/<img[^>]*?src="([^"]*?VALORANT_Icon[^"]*?)"/gi)];
+    log(`에이전트 <img> 태그: ${agentImgs.length}`, agentImgs.length>0?'ok':'err');
+    
+    if(agentImgs.length>0){
+      const uniqueAgents=new Set();
+      const lines=[];
+      agentImgs.forEach(m=>{
+        const src=m[1];
+        const agentMatch=src.match(/\/([^/]+?)_(?:\d+\.\d+_)?VALORANT_Icon/i);
+        if(agentMatch)uniqueAgents.add(agentMatch[1]);
+        lines.push(src);
+      });
+      agentResults.value=`고유 에이전트: ${[...uniqueAgents].join(', ')}\n\n--- 이미지 URL 목록 (처음 50개) ---\n${lines.slice(0,50).join('\n')}`;
+      log(`고유 에이전트: ${[...uniqueAgents].join(', ')}`, 'ok');
+    }
+    
+    // 4. BLG 관련 체크
+    const blgCount=(html.match(/Bilibili.Gaming|BLG|bilibili/gi)||[]).length;
+    log(`BLG 멘션: ${blgCount}`, blgCount>0?'ok':'warn');
+    
+    // 5. data-timestamp 체크
+    const timestamps=(html.match(/data-timestamp/g)||[]);
+    log(`data-timestamp: ${timestamps.length}`, timestamps.length>0?'ok':'warn');
+    
+    // 6. timer-object 체크
+    const timers=(html.match(/timer-object/g)||[]);
+    log(`timer-object: ${timers.length}`, timers.length>0?'ok':'warn');
+    
+    // 7. MVP 체크
+    const mvps=(html.match(/MVP/g)||[]);
+    log(`"MVP" 멘션: ${mvps.length}`, mvps.length>0?'ok':'warn');
+    
+    // 8. Map name 체크
+    const maps=['Ascent','Bind','Breeze','Fracture','Haven','Icebox','Lotus','Pearl','Split','Sunset','Abyss','Corrode'];
+    maps.forEach(m=>{
+      const cnt=(html.match(new RegExp(`>${m}<|title="${m}"`, 'gi')||[])).length;
+      if(cnt>0)log(`  맵 "${m}": ${cnt}회`, 'ok');
+    });
+    
+    // 9. DOMParser로 파싱 시도
+    log('','');
+    log('═══ DOMParser 파싱 테스트 ═══', 'info');
+    
+    const doc=new DOMParser().parseFromString(html,'text/html');
+    
+    const popups=doc.querySelectorAll('.brkts-popup');
+    log(`DOMParser .brkts-popup: ${popups.length}`, popups.length>0?'ok':'err');
+    
+    if(popups.length>0){
+      // 첫번째 팝업 분석
+      const p0=popups[0];
+      log(`  첫번째 popup outerHTML 길이: ${p0.outerHTML.length}`, '');
+      log(`  첫번째 popup textContent: "${p0.textContent.slice(0,200)}"`, '');
+      
+      const opps=p0.querySelectorAll('.brkts-popup-header-opponent');
+      log(`  .brkts-popup-header-opponent: ${opps.length}`, opps.length>=2?'ok':'err');
+      if(opps.length>=2){
+        log(`    team1: "${opps[0].textContent.trim()}"`, '');
+        log(`    team2: "${opps[1].textContent.trim()}"`, '');
+      }
+      
+      const games=p0.querySelectorAll('.brkts-popup-body-game');
+      log(`  .brkts-popup-body-game: ${games.length}`, games.length>0?'ok':'err');
+      
+      if(games.length>0){
+        const g0=games[0];
+        const imgs=g0.querySelectorAll('img');
+        log(`    첫번째 game img 개수: ${imgs.length}`, imgs.length>0?'ok':'err');
+        imgs.forEach((img,i)=>{
+          if(i<12){
+            const src=img.getAttribute('src')||'';
+            const alt=img.getAttribute('alt')||'';
+            const title=img.getAttribute('title')||'';
+            log(`      img[${i}]: src="${src.slice(-60)}" alt="${alt}" title="${title}"`, '');
+          }
+        });
+      }
+      
+      // BLG 매치 찾기
+      let blgPopups=0;
+      popups.forEach(p=>{
+        if(/bilibili|blg/i.test(p.textContent))blgPopups++;
+      });
+      log(`  BLG가 포함된 popup: ${blgPopups}`, blgPopups>0?'ok':'err');
+    }
+    
+    // 10. 모든 img 태그에서 에이전트 아이콘 찾기
+    const allImgs=doc.querySelectorAll('img');
+    let agentImgCount=0;
+    allImgs.forEach(img=>{
+      const src=(img.getAttribute('src')||'').toLowerCase();
+      if(src.includes('valorant_icon'))agentImgCount++;
+    });
+    log(`DOMParser 전체 img 중 VALORANT_Icon: ${agentImgCount}`, agentImgCount>0?'ok':'err');
+    
+    log('','');
+    log('═══ 진단 완료 ═══', 'info');
+    
+  }catch(e){
+    log(`❌ 오류: ${e.message}`, 'err');
+  }
+}
+</script>
+</body>
+</html>
