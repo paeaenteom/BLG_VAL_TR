@@ -36,6 +36,15 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 .live-dot.error{background:var(--loss);box-shadow:0 0 8px var(--loss);animation:none}
 .sync-badge{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--dim);display:flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;background:var(--s2);border:1px solid var(--s3)}
 .sync-dot{width:6px;height:6px;border-radius:50%;display:inline-block}.sync-dot.syncing{background:#4d8bff;animation:lp 1s infinite}.sync-dot.done{background:var(--win)}.sync-dot.err{background:var(--loss)}
+.sync-export-btn{background:none;border:none;cursor:pointer;font-size:11px;padding:0 2px;margin-left:2px;opacity:.6;transition:opacity .15s}.sync-export-btn:hover{opacity:1}
+.export-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fi .15s}
+.export-box{background:var(--bg);border:1px solid var(--accent-b);border-radius:12px;width:90%;max-width:700px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
+.export-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--s3);font-weight:700;color:var(--bright);font-size:14px}
+.export-stats{display:flex;gap:8px;padding:8px 18px;font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+.export-code{flex:1;min-height:300px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--surface);color:var(--dim);border:none;resize:none;outline:none;overflow:auto}
+.export-actions{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--s3);flex-wrap:wrap}
+.export-btn{padding:8px 16px;border-radius:6px;border:1px solid var(--s3);background:var(--s2);color:var(--bright);font-size:11px;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .15s}
+.export-btn:hover{background:var(--s3)}.export-btn.copy{border-color:rgba(0,229,160,.3);color:#00e5a0}.export-btn.dl{border-color:rgba(77,139,255,.3);color:#4d8bff}.export-btn.clear{border-color:rgba(255,77,106,.3);color:#ff4d6a;margin-left:auto}
 @keyframes lp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
 .live-text{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim)}
 .refresh-btn{padding:4px 12px;border-radius:6px;border:1px solid var(--brd2);background:transparent;color:var(--blue);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s}
@@ -134,6 +143,7 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 @keyframes mapPopIn{from{opacity:0;transform:translateX(-50%) translateY(4px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .sr{grid-column:1/-1;display:flex;justify-content:center;align-items:center;gap:8px;margin-top:2px}
 .sb{font-size:10px;color:var(--dim);padding:2px 10px;border-radius:4px;background:var(--s3)}
+.liq-tag{background:rgba(77,139,255,.1);color:#4d8bff;font-size:8px;padding:2px 5px}
 .vod-btn{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:5px;background:rgba(255,0,0,.1);border:1px solid rgba(255,0,0,.2);color:#ff6b6b;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:600;text-decoration:none;transition:all .2s;letter-spacing:.3px;cursor:pointer}
 .vod-btn:hover{background:rgba(255,0,0,.2);border-color:rgba(255,0,0,.35);color:#ff8a8a;transform:translateY(-1px)}
 
@@ -480,6 +490,7 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 </div>
 <div class="footer">실시간 데이터 · <a href="https://vlr.gg/team/12498/bilibili-gaming" target="_blank">VLR.gg</a> · <a href="https://liquipedia.net/valorant/Bilibili_Gaming" target="_blank">Liquipedia</a> · <a href="https://www.youtube.com/@VALORANTEsportsCN" target="_blank">YouTube</a> · <a href="https://space.bilibili.com/2071691173" target="_blank">B站 (无畏契约赛事)</a></div>
 
+<script src="lp-agents.js"></script>
 <script>
 
 // ===== UNIVERSAL FETCH (Vercel 자체 프록시 + fallback) =====
@@ -1104,6 +1115,92 @@ const baselineData = {
 };
 
 let allData=JSON.parse(JSON.stringify(baselineData)),activeYear=String(new Date().getFullYear());
+
+// ===== LOCAL STORAGE PERSISTENCE (자동 동기화 데이터 영구 저장) =====
+const LS_KEY='blg_synced_matches';
+function loadSyncedMatches(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);if(!raw)return;
+    const saved=JSON.parse(raw);
+    let count=0;
+    Object.entries(saved).forEach(([yr,tourns])=>{
+      if(!allData[yr])allData[yr]=[];
+      tourns.forEach(st=>{
+        let tg=allData[yr].find(g=>g.tournament===st.tournament);
+        if(!tg){
+          const evLc=st.tournament.toLowerCase();
+          tg=allData[yr].find(g=>g.tournament.toLowerCase().includes(evLc.substring(0,15))||evLc.includes(g.tournament.toLowerCase().substring(0,15)));
+        }
+        if(!tg){tg={tournament:st.tournament,intl:st.intl||false,matches:[]};allData[yr].push(tg)}
+        st.matches.forEach(sm=>{
+          const exists=tg.matches.some(x=>x.date===sm.date&&(x.tag===sm.tag||x.opp===sm.opp));
+          if(!exists){tg.matches.push(sm);count++}
+        });
+      });
+    });
+    if(count>0)console.log(`💾 localStorage: ${count}개 캐시된 경기 로드`);
+  }catch(e){console.log('localStorage load fail:',e)}
+}
+function saveSyncedMatches(newMatches){
+  // newMatches = [{yr, tournament, intl, match}]
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    const saved=raw?JSON.parse(raw):{};
+    newMatches.forEach(({yr,tournament,intl,match})=>{
+      if(!saved[yr])saved[yr]=[];
+      let st=saved[yr].find(t=>t.tournament===tournament);
+      if(!st){st={tournament,intl,matches:[]};saved[yr].push(st)}
+      const exists=st.matches.some(x=>x.date===match.date&&(x.tag===match.tag||x.opp===match.opp));
+      if(!exists)st.matches.push(match);
+    });
+    localStorage.setItem(LS_KEY,JSON.stringify(saved));
+  }catch(e){console.log('localStorage save fail:',e)}
+}
+function exportBaselineCode(){
+  // Generate baselineData-format JS code from ALL matches in allData (baseline + synced)
+  let code='const baselineData = {\n';
+  Object.keys(allData).sort().forEach(yr=>{
+    code+=`  "${yr}":[\n`;
+    (allData[yr]||[]).forEach(t=>{
+      code+=`  {tournament:${JSON.stringify(t.tournament)},intl:${t.intl},matches:[\n`;
+      t.matches.forEach(m=>{
+        const mapsStr=m.maps&&m.maps.length?m.maps.map(p=>`{n:${JSON.stringify(p.n)},b:${p.b},o:${p.o},r:"${p.r}"}`).join(','):'';
+        code+=`    {date:"${m.date}",opp:${JSON.stringify(m.opp)},tag:"${m.tag}",stage:"${m.stage||''}",fmt:"${m.fmt}",bs:${m.bs},os:${m.os},r:"${m.r}",maps:[${mapsStr}]},\n`;
+      });
+      code+=`  ]},\n`;
+    });
+    code+=`  ],\n`;
+  });
+  code+='};\n';
+  return code;
+}
+function showExportModal(){
+  const code=exportBaselineCode();
+  const saved=localStorage.getItem(LS_KEY);
+  const savedCount=saved?Object.values(JSON.parse(saved)).reduce((s,ts)=>s+ts.reduce((s2,t)=>s2+t.matches.length,0),0):0;
+  const totalCount=Object.values(allData).reduce((s,ya)=>s+ya.reduce((s2,t)=>s2+t.matches.length,0),0);
+  let h=`<div class="export-modal" onclick="if(event.target===this)this.remove()">
+  <div class="export-box">
+    <div class="export-header">
+      <span>📋 baselineData 내보내기</span>
+      <button onclick="this.closest('.export-modal').remove()" style="background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div class="export-stats">
+      <span>전체 ${totalCount}경기</span>
+      <span>·</span>
+      <span style="color:var(--green)">LP 캐시 ${savedCount}경기</span>
+    </div>
+    <textarea class="export-code" id="exportCode" readonly>${code.replace(/</g,'&lt;')}</textarea>
+    <div class="export-actions">
+      <button class="export-btn copy" onclick="navigator.clipboard.writeText(document.getElementById('exportCode').value);this.textContent='✓ 복사됨';setTimeout(()=>this.textContent='📋 코드 복사',1500)">📋 코드 복사</button>
+      <button class="export-btn dl" onclick="const b=new Blob([document.getElementById('exportCode').value],{type:'text/javascript'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='baselineData.js';a.click()">💾 JS 다운로드</button>
+      <button class="export-btn clear" onclick="localStorage.removeItem('${LS_KEY}');this.textContent='✓ 삭제됨';setTimeout(()=>this.textContent='🗑 캐시 삭제',1500)">🗑 캐시 삭제</button>
+    </div>
+  </div></div>`;
+  document.body.insertAdjacentHTML('beforeend',h);
+}
+loadSyncedMatches();
+
 // Ensure current year exists
 if(!allData[activeYear])allData[activeYear]=[];
 // If current year has no data yet, also show latest year with data
@@ -1399,7 +1496,7 @@ h+=`<div class="mw" id="${id}"><div class="mc ${m.r}" onclick="toggleDetail('${i
 <div class="scc"><div class="sc"><span class="${w?'ws':'ls'}">${m.bs}</span><span class="sp">:</span><span class="${w?'ls':'ws'}">${m.os}</span></div><div class="sm">${m.fmt} · ${m.date}</div><span class="rb ${m.r}">${w?'WIN':'LOSS'}</span></div>
 <div class="tr"><div><div class="tm">${m.tag}</div><div class="tt">${m.opp}</div></div>${L(m.tag)}</div>
 ${m.maps&&m.maps.length?'<div class="mr">'+m.maps.map((p,mi2)=>`<span class="mp ${p.r==='win'?'mw2':'ml2'}" onclick="event.stopPropagation();toggleMapAgents(this,${y},${ti},${mi},${mi2})">${p.n} ${p.b}-${p.o}</span>`).join('')+'</div>':''}
-<div class="sr"><span class="sb">${m.stage}</span><span class="vod-btn" onclick="event.stopPropagation();openVod('${vodQEnc}','${vodLabel}','${directBvid}')" title="VOD 직접 보기">📺 VOD</span>${directBvid?`<a class="vod-btn" href="https://www.bilibili.com/video/${directBvid}" target="_blank" onclick="event.stopPropagation()" style="background:rgba(0,161,214,.1);border-color:rgba(0,161,214,.2);color:#00a1d6" title="Bilibili에서 보기">🅱 B站</a>`:`<a class="vod-btn" href="${biliSearchUrl}" target="_blank" onclick="event.stopPropagation()" style="background:rgba(0,161,214,.1);border-color:rgba(0,161,214,.2);color:#00a1d6" title="Bilibili 검색">🅱 B站</a>`}</div>
+<div class="sr"><span class="sb">${m.stage}</span>${m._liq?'<span class="sb liq-tag" title="Liquipedia 자동 동기화">📡</span>':''}<span class="vod-btn" onclick="event.stopPropagation();openVod('${vodQEnc}','${vodLabel}','${directBvid}')" title="VOD 직접 보기">📺 VOD</span>${directBvid?`<a class="vod-btn" href="https://www.bilibili.com/video/${directBvid}" target="_blank" onclick="event.stopPropagation()" style="background:rgba(0,161,214,.1);border-color:rgba(0,161,214,.2);color:#00a1d6" title="Bilibili에서 보기">🅱 B站</a>`:`<a class="vod-btn" href="${biliSearchUrl}" target="_blank" onclick="event.stopPropagation()" style="background:rgba(0,161,214,.1);border-color:rgba(0,161,214,.2);color:#00a1d6" title="Bilibili 검색">🅱 B站</a>`}</div>
 <span class="ea">▼</span></div><div class="dp"><div class="di"></div></div></div>`});h+=`</div>`});h+=`</div>`});
 main.innerHTML=h}
 
@@ -1854,6 +1951,37 @@ function liqMatchLookup(liqMatches,match){
 // Global cache for per-match LP detail lookups
 const liqMatchDetailCache={};// "y_ti_mi" → liqMatch or null
 
+// ===== LP_AGENT_DATA 하드코딩 에이전트 데이터 자동 적용 =====
+function preloadLPAgents(){
+  if(typeof LP_AGENT_DATA==='undefined')return;
+  let cnt=0;
+  for(const[yr,tgs]of Object.entries(allData)){
+    tgs.forEach((tg,ti)=>{
+      tg.matches.forEach((m,mi)=>{
+        const cacheKey=`${yr}_${ti}_${mi}`;
+        if(liqMatchDetailCache[cacheKey])return;
+        const lpKey=m.date+'_'+m.tag;
+        const lp=LP_AGENT_DATA[lpKey];
+        if(!lp||!lp.d||!lp.d.length)return;
+        liqMatchDetailCache[cacheKey]={
+          blgSide:1,
+          mvp:lp.p||'',
+          maps:lp.d.map(md=>({
+            mapName:md.m,
+            t1agents:md.b||[],
+            t2agents:md.o||[],
+            score1:md.bs||0,
+            score2:md.os||0,
+            mvp:''
+          }))
+        };
+        cnt++;
+      });
+    });
+  }
+  console.log(`✅ LP_AGENT_DATA: ${cnt}경기 에이전트 프리로드`);
+}
+
 async function loadLiqDetail(y,ti,mi){
   const key=`${y}_${ti}_${mi}`;
   const btnEl=document.getElementById(`liq-btn-${key}`);
@@ -1878,13 +2006,13 @@ let liqSyncCount=0;
 function updateSyncBadge(){
   const el=document.getElementById('syncBadge');if(!el)return;
   if(liqSyncStatus==='syncing')el.innerHTML=`<span class="sync-dot syncing"></span> LP 동기화 중...`;
-  else if(liqSyncStatus==='done')el.innerHTML=liqSyncCount>0?`<span class="sync-dot done"></span> ${liqSyncCount}경기 추가됨`:`<span class="sync-dot done"></span> 최신 상태`;
+  else if(liqSyncStatus==='done')el.innerHTML=`<span class="sync-dot done"></span> ${liqSyncCount>0?liqSyncCount+'경기 추가됨':'최신 상태'}<button class="sync-export-btn" onclick="event.stopPropagation();showExportModal()" title="baselineData 내보내기">📋</button>`;
   else if(liqSyncStatus==='error')el.innerHTML=`<span class="sync-dot err"></span> 동기화 실패`;
   else el.innerHTML='';
 }
 
 async function liqAutoSync(){
-  liqSyncStatus='syncing';updateSyncBadge();liqSyncCount=0;
+  liqSyncStatus='syncing';updateSyncBadge();liqSyncCount=0;const liqSyncNew=[];
   try{
     // Step 1: Fetch Results page → discover tournaments + LP page links
     const rd=await liqFetch({action:'parse',page:'Bilibili_Gaming/Results',prop:'text'});
@@ -1989,8 +2117,10 @@ async function liqAutoSync(){
             return x.tag===oppTag||x.opp===oppName||x.opp.toLowerCase().includes(oppName.toLowerCase().split(' ')[0]);
           }));
           if(!existsInTg&&!existsInYear&&mDate&&bs+os>0){
-            tg.matches.push({date:mDate,opp:oppName,tag:oppTag,stage:'',fmt,bs,os,r:isWin?'win':'loss',maps});
+            const newMatch={date:mDate,opp:oppName,tag:oppTag,stage:'',fmt,bs,os,r:isWin?'win':'loss',maps,_liq:true};
+            tg.matches.push(newMatch);
             liqSyncCount++;
+            liqSyncNew.push({yr,tournament:tg.tournament,intl:tg.intl||false,match:newMatch});
             console.log(`📡 +NEW: ${mDate} BLG vs ${oppName} ${bs}:${os} (${t.event})`);
           }
           // Also populate liqMatchDetailCache for agent display
@@ -2001,7 +2131,8 @@ async function liqAutoSync(){
       // Rate limit: 2.5s between requests
       if(i<toFetch.length-1)await new Promise(r=>setTimeout(r,2500));
     }
-    // Step 4: Re-render
+    // Step 4: Save to localStorage & re-render
+    if(liqSyncNew.length>0)saveSyncedMatches(liqSyncNew);
     renderAll();
     liqSyncStatus='done';updateSyncBadge();
     console.log(`📡 LP AutoSync 완료: ${liqSyncCount}개 새 경기 추가`);
@@ -2972,9 +3103,10 @@ try{
     });
   }
 }catch(e){}
-dot.className='live-dot';txt.textContent=`마지막 업데이트: ${new Date().toLocaleTimeString('ko-KR')} · ${syncCount>0?syncCount+'개 동기화':'기존 데이터 사용'}`;renderAll();
+dot.className='live-dot';txt.textContent=`마지막 업데이트: ${new Date().toLocaleTimeString('ko-KR')} · ${syncCount>0?syncCount+'개 동기화':'기존 데이터 사용'}`;preloadLPAgents();renderAll();
 btn.disabled=false;ico.innerHTML='↻'}
 
+preloadLPAgents();
 renderAll();
 fetchLiveData().then(()=>setInterval(fetchLiveData,5*60*1000));
 fetchSkinData();
