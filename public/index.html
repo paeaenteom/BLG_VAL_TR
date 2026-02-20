@@ -169,7 +169,7 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 /* Map detail */
 .dms{margin-bottom:18px}.dmt{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--dimmer);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .dmt::before{content:'';width:16px;height:2px;background:var(--blue);border-radius:1px}
-.md{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:3px;border-radius:8px;background:var(--surface);border:1px solid var(--brd);transition:background .2s}
+.md{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:3px;border-radius:8px;background:var(--surface);border:1px solid var(--brd);transition:background .2s;flex-wrap:wrap}
 .md:hover{background:var(--s2)}
 .md-n{font-family:'Orbitron',sans-serif;font-size:9px;color:var(--dimmer);width:44px;text-align:center;flex-shrink:0}
 .md-m{font-size:12px;font-weight:700;width:68px;flex-shrink:0}
@@ -179,6 +179,19 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 .md-s{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;min-width:52px;text-align:center}.md-s .mws{color:var(--win)}.md-s .mls{color:var(--loss)}.md-s .msp{color:var(--dimmer);margin:0 2px;font-size:10px}
 .md-r{font-size:9px;font-family:'Orbitron',sans-serif;font-weight:700;padding:2px 8px;border-radius:3px;min-width:32px;text-align:center}
 .md-r.rw{background:var(--win-bg);color:var(--win);border:1px solid var(--win-b)}.md-r.rl{background:var(--loss-bg);color:var(--loss);border:1px solid var(--loss-b)}
+.md-agents{width:100%;grid-column:1/-1;display:flex;gap:8px;margin-top:4px;padding:6px 8px;background:rgba(255,255,255,.02);border-radius:6px;border:1px solid var(--s3)}
+.ag-row{display:flex;align-items:center;gap:4px;flex:1}.ag-side{font-size:9px;font-weight:700;font-family:'Orbitron',sans-serif;padding:2px 6px;border-radius:3px;min-width:32px;text-align:center}
+.ag-side.blg{background:rgba(0,229,160,.1);color:#00e5a0}.ag-side.opp{background:rgba(255,77,106,.1);color:#ff4d6a}
+.ag-row img{transition:transform .15s}.ag-row img:hover{transform:scale(1.4);z-index:2}.ag-name{font-size:9px;padding:2px 4px;background:var(--s3);border-radius:3px;color:var(--dim)}
+.liq-mvp{display:flex;align-items:center;gap:8px;padding:8px 12px;margin-top:8px;background:linear-gradient(135deg,rgba(255,184,77,.06),rgba(255,184,77,.02));border:1px solid rgba(255,184,77,.15);border-radius:8px}
+.mvp-label{font-size:10px;font-weight:700;color:#ffb84d;font-family:'JetBrains Mono',monospace}.mvp-name{font-size:13px;font-weight:700;color:#fff}
+.liq-veto{padding:8px 12px;margin-top:6px;background:var(--s2);border:1px solid var(--s3);border-radius:8px}
+.veto-label{font-size:9px;font-weight:700;color:var(--dim);font-family:'Orbitron',sans-serif;letter-spacing:1px;display:block;margin-bottom:4px}
+.veto-flow{display:flex;gap:4px;flex-wrap:wrap}.veto-step{display:flex;align-items:center;gap:3px;font-size:10px;padding:3px 6px;background:var(--s3);border-radius:4px}
+.vact{color:#4d8bff;font-weight:600;font-family:'JetBrains Mono',monospace;font-size:9px}.vt1,.vt2{color:var(--dim)}
+.liq-load-btn{cursor:pointer;background:rgba(77,139,255,.1)!important;border:1px solid rgba(77,139,255,.25)!important;color:#4d8bff!important;transition:all .15s;font-family:'JetBrains Mono',monospace!important;font-size:10px!important}
+.liq-load-btn:hover{background:rgba(77,139,255,.2)!important;transform:translateY(-1px)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 /* Narrative */
 .dn{padding:16px 18px;border-radius:8px;background:var(--surface);border:1px solid var(--brd)}
 .dnt{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--blue);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
@@ -1093,7 +1106,38 @@ function renderYearTabs(){const yrs=Object.keys(allData).sort((a,b)=>b-a);let h=
 
 function mapHTML(maps){if(!maps||!maps.length)return'<div style="padding:12px;text-align:center;color:var(--dimmer);font-size:12px">맵 상세 스코어가 없습니다</div>';let h=`<div class="dms"><div class="dmt">맵별 상세 결과</div>`;maps.forEach((mp,i)=>{const w=mp.r==='win',t=(mp.b||0)+(mp.o||0)||1,p=Math.round(((mp.b||0)/t)*100);h+=`<div class="md"><div class="md-n">MAP ${i+1}</div><div class="md-m">${mp.n}</div><div class="md-bw"><div class="md-bar"><div class="md-bf ${w?'bw':'bl'}" style="width:${p}%"></div></div></div><div class="md-s"><span class="${w?'mws':'mls'}">${mp.b}</span><span class="msp">:</span><span class="${w?'mls':'mws'}">${mp.o}</span></div><div class="md-r ${w?'rw':'rl'}">${w?'W':'L'}</div></div>`});return h+'</div>'}
 
-function detHTML(m,tn,il){const narr=fbNarr(m,tn);return mapHTML(m.maps)+`<div class="dn"><div class="dnt">경기 분석</div><div class="dtx">${narr}</div></div><div class="dmeta"><span class="mt">${tn}</span><span class="mt">${m.fmt}</span><span class="mt">${m.stage}</span><span class="mt ${m.r==='win'?'mtwn':'mtls'}">${m.r==='win'?'✓ 승리':'✗ 패배'}</span>${il?'<span class="mt mtil">🌍 국제 대회</span>':''}<span class="mt">${m.date}</span></div>`}
+function detHTML(m,tn,il){const narr=fbNarr(m,tn);
+// Check LP detail cache
+const key=Object.keys(liqMatchDetailCache).find(k=>{const[y2,ti2,mi2]=k.split('_');const t2=allData[y2]?.[ti2];return t2&&t2.matches[mi2]===m});
+const liq=key?liqMatchDetailCache[key]:null;
+// Find key for this match (for button id)
+let btnKey='';
+for(const y of Object.keys(allData)){const ts=allData[y];for(let ti=0;ti<ts.length;ti++){const t=ts[ti];for(let mi=0;mi<t.matches.length;mi++){if(t.matches[mi]===m){btnKey=`${y}_${ti}_${mi}`;break}}}}
+
+let h=mapHTMLEx(m.maps,liq,m);
+if(liq?.mvp)h+=`<div class="liq-mvp"><span class="mvp-label">⭐ MVP</span><span class="mvp-name">${liq.mvp}</span></div>`;
+if(liq?.veto?.length)h+=`<div class="liq-veto"><span class="veto-label">MAP VETO</span><div class="veto-flow">${liq.veto.map(v=>`<span class="veto-step"><span class="vt1">${v.t1||''}</span><span class="vact">${v.action}</span><span class="vt2">${v.t2||''}</span></span>`).join('')}</div></div>`;
+h+=`<div class="dn"><div class="dnt">경기 분석</div><div class="dtx">${narr}</div></div>`;
+h+=`<div class="dmeta"><span class="mt">${tn}</span><span class="mt">${m.fmt}</span><span class="mt">${m.stage}</span><span class="mt ${m.r==='win'?'mtwn':'mtls'}">${m.r==='win'?'✓ 승리':'✗ 패배'}</span>${il?'<span class="mt mtil">🌍 국제 대회</span>':''}<span class="mt">${m.date}</span>`;
+if(!liq&&LP_TOURN_MAP[tn]){h+=`<button class="mt liq-load-btn" id="liq-btn-${btnKey}" onclick="event.stopPropagation();loadLiqDetail(${btnKey.replace(/_/g,',')})">📡 에이전트·MVP 불러오기</button>`}
+else if(liq){h+=`<span class="mt" style="background:rgba(0,229,160,.1);border-color:rgba(0,229,160,.2);color:#00e5a0">📡 Liquipedia ✓</span>`}
+h+=`</div>`;return h}
+
+function mapHTMLEx(maps,liq,match){if(!maps||!maps.length)return'<div style="padding:12px;text-align:center;color:var(--dimmer);font-size:12px">맵 상세 스코어가 없습니다</div>';
+const blgSide=liq?.blgSide||1;
+let h=`<div class="dms"><div class="dmt">맵별 상세 결과</div>`;
+maps.forEach((mp,i)=>{const w=mp.r==='win',t=(mp.b||0)+(mp.o||0)||1,p=Math.round(((mp.b||0)/t)*100);
+// Find matching LP map
+let lm=null;
+if(liq?.maps){lm=liq.maps[i]||(liq.maps.find(g=>g.mapName&&g.mapName.includes(mp.n)))}
+const blgAgents=lm?(blgSide===1?lm.t1agents:lm.t2agents):[];
+const oppAgents=lm?(blgSide===1?lm.t2agents:lm.t1agents):[];
+h+=`<div class="md"><div class="md-n">MAP ${i+1}</div><div class="md-m">${mp.n}</div><div class="md-bw"><div class="md-bar"><div class="md-bf ${w?'bw':'bl'}" style="width:${p}%"></div></div></div><div class="md-s"><span class="${w?'mws':'mls'}">${mp.b}</span><span class="msp">:</span><span class="${w?'mls':'mws'}">${mp.o}</span></div><div class="md-r ${w?'rw':'rl'}">${w?'W':'L'}</div>`;
+if(blgAgents.length||oppAgents.length){
+  h+=`<div class="md-agents"><div class="ag-row"><span class="ag-side blg">BLG</span>${blgAgents.map(a=>agentImg(a,22)).join(' ')}</div>`;
+  h+=`<div class="ag-row"><span class="ag-side opp">${match.tag}</span>${oppAgents.map(a=>agentImg(a,22)).join(' ')}</div></div>`;
+}
+h+=`</div>`});return h+'</div>'}
 
 function fbNarr(m,tn){const w=m.r==='win',mt=m.maps&&m.maps.length?m.maps.map((p,i)=>`<strong>Map ${i+1} (${p.n})</strong> ${p.b}-${p.o} ${p.r==='win'?'승리':'패배'}`).join(', ')+'.':'';return w?`<strong>BLG</strong>가 <strong>${tn} ${m.stage}</strong>에서 <strong>${m.opp}</strong>를 <strong>${m.bs}:${m.os}</strong>으로 꺾었습니다. ${mt} 팀 전체적으로 안정적인 합을 보여주며 승리를 가져갔습니다.`:`<strong>BLG</strong>가 <strong>${tn} ${m.stage}</strong>에서 <strong>${m.opp}</strong>에게 <strong>${m.bs}:${m.os}</strong>으로 패배했습니다. ${mt} 아쉬운 결과지만 다음 경기에서의 반등이 기대됩니다.`}
 
@@ -1613,6 +1657,161 @@ function fetchTeamLogo(tag){
   if(logoCache[tag])return;
   logoCache[tag]=_tsvg(tag,_LOGO_COLORS[tag]||'#333');
   LOGOS[tag]=logoCache[tag];
+}
+
+// ===== LIQUIPEDIA MATCH DETAIL (에이전트·MVP·밴픽) =====
+const LP_TOURN_MAP={
+'FGC 2023: Act 1 Qualifier':'FGC/2023/Act_1/China',
+'FGC 2023: Act 2 Qualifier':'FGC/2023/Act_2/China',
+'FGC Invitational 2023: Act 1':'FGC/2023/Act_1/Invitational',
+'FGC Invitational 2023: Act 2':'FGC/2023/Act_2/Invitational',
+'VCT 2023: CN Champions Qualifier':'VCT/2023/Champions/Last_Chance_Qualifier/China',
+'VALORANT Champions 2023 (LA)':'VCT/2023/Champions',
+'VCT 2024: China Kickoff':'VCT/2024/China_League/Kickoff',
+'FGC Invitational 2024':'FGC/2024/Invitational',
+'VCT 2024: China Stage 1':'VCT/2024/China_League/Stage_1',
+'SOOP Valorant League 2024':'SOOP_Valorant_League/Season_1',
+'VCT 2024: China Stage 2':'VCT/2024/China_League/Stage_2',
+'Radiant Asia Invitational 2024':'Radiant_Asia_Invitational/2024',
+'VALORANT Champions 2024 (Seoul)':'VCT/2024/Champions',
+'China Evolution Series: Act 1':'VALORANT_China_Evolution_Series/Act_1',
+'China Evolution Series: Act 2':'VALORANT_China_Evolution_Series/Act_2',
+'China Evolution Series: Act 3':'VALORANT_China_Evolution_Series/Act_3',
+'VCT 2025: China Kickoff':'VCT/2025/China_League/Kickoff',
+'VCT 2025: China Stage 1':'VCT/2025/China_League/Stage_1',
+'VCT Masters Toronto 2025':'VCT/2025/Masters/Toronto',
+'CN EVO 25: Act 2 X ACL':'VALORANT_China_Evolution_Series/2025/Act_2',
+'VCT 2025: China Stage 2':'VCT/2025/China_League/Stage_2',
+'CN EVO 25: Act 3':'VALORANT_China_Evolution_Series/2025/Act_3',
+'VALORANT Champions 2025 (Paris)':'VCT/2025/Champions',
+'Esports World Cup 2025':'Esports_World_Cup/2025',
+'Shanghai Esports Masters 2025':'Shanghai_Esports_Masters/2025',
+'CEFSCC 2025':'China_Esports_Festival_Super_Champions_Cup/2025',
+'Radiant Intl. Invitational 2025':'VALORANT_Radiant_International_Invitational/2025',
+'HERO Asian Champions League 2025':'HERO_Asian_Champions_League/2025',
+'VCT 2026: China Kickoff':'VCT/2026/China_League/Kickoff',
+};
+
+const liqDetailCache={};// pagePath → [{team1,team2,score,maps:[{mapName,score1,score2,t1agents,t2agents}],mvp,veto}]
+
+const AGENT_ICONS_URL='https://valorant-api.com/v1/agents?isPlayableCharacter=true';
+let agentIconMap=null;
+
+async function loadAgentIcons(){
+  if(agentIconMap)return;
+  try{
+    const r=await fetch(AGENT_ICONS_URL);const d=await r.json();
+    agentIconMap={};
+    (d.data||[]).forEach(a=>{
+      const name=a.displayName.replace('/','');// KAY/O → KAYO
+      agentIconMap[name.toLowerCase()]=a.displayIcon;
+      agentIconMap[a.displayName.toLowerCase()]=a.displayIcon;
+    });
+  }catch(e){agentIconMap={}}
+}
+loadAgentIcons();
+
+function agentImg(name,sz=20){
+  if(!agentIconMap||!name)return'';
+  const url=agentIconMap[name.toLowerCase()]||agentIconMap[name.replace('/','').toLowerCase()];
+  if(!url)return`<span class="ag-name">${name}</span>`;
+  return`<img src="${url}" alt="${name}" title="${name}" style="width:${sz}px;height:${sz}px;border-radius:50%;vertical-align:middle">`;
+}
+
+async function liqFetchTournDetail(pagePath){
+  if(liqDetailCache[pagePath])return liqDetailCache[pagePath];
+  const d=await liqFetch({action:'parse',page:pagePath,prop:'text'});
+  if(!d?.parse?.text?.['*'])return null;
+  const doc=new DOMParser().parseFromString(d.parse.text['*'],'text/html');
+  const all=liqParsePopups(doc);
+  const blg=all.filter(m=>{
+    const t=(m.team1+' '+m.team2+' '+(m._hl||[]).join(' ')).toLowerCase();
+    return t.includes('bilibili')||t.includes('blg');
+  });
+  liqDetailCache[pagePath]=blg;
+  return blg;
+}
+
+function liqParsePopups(doc){
+  const matches=[];
+  const MAPS=['Ascent','Bind','Breeze','Fracture','Haven','Icebox','Lotus','Pearl','Split','Sunset','Abyss','Corrode'];
+  const AGENTS=['Jett','Raze','Phoenix','Reyna','Yoru','Neon','Iso','Waylay','Sova','Breach','Skye','KAY/O','Fade','Gekko','Tejo','Killjoy','Cypher','Sage','Chamber','Deadlock','Vyse','Brimstone','Omen','Viper','Astra','Harbor','Clove'];
+  doc.querySelectorAll('.brkts-popup').forEach(popup=>{
+    const m={team1:'',team2:'',score:'',maps:[],mvp:'',veto:[],_hl:[]};
+    // Teams
+    const opps=popup.querySelectorAll('.match-info-header-opponent');
+    if(opps.length>=2){m.team1=opps[0].textContent.replace(/\s+/g,' ').trim();m.team2=opps[1].textContent.replace(/\s+/g,' ').trim()}
+    popup.querySelectorAll('[data-highlightingclass]').forEach(el=>{const v=el.getAttribute('data-highlightingclass');if(v)m._hl.push(v.toLowerCase())});
+    // Score
+    const hdr=popup.querySelector('.match-info-header');
+    if(hdr){const sm=hdr.textContent.replace(/\s+/g,' ').match(/(\d+)\s*[:\-–]\s*(\d+)/);if(sm)m.score=sm[1]+':'+sm[2]}
+    // Date
+    const de=popup.querySelector('.timer-object,[data-timestamp]');
+    if(de)m.date=de.textContent?.trim()||'';
+    // Maps
+    popup.querySelectorAll('.brkts-popup-body-game').forEach(row=>{
+      const g={mapName:'',score1:0,score2:0,t1agents:[],t2agents:[]};
+      row.querySelectorAll('a').forEach(a=>{const t=(a.getAttribute('title')||a.textContent||'').trim();if(MAPS.some(mn=>t.includes(mn)))g.mapName=t});
+      if(!g.mapName){const txt=row.textContent;MAPS.forEach(mn=>{if(txt.includes(mn))g.mapName=mn})}
+      const nums=[];row.querySelectorAll('td,.brkts-popup-spaced').forEach(el=>{const n=parseInt(el.textContent?.trim());if(!isNaN(n)&&n>=0&&n<=30)nums.push(n)});
+      const big=nums.filter(n=>n>=3);if(big.length>=2){g.score1=big[0];g.score2=big[1]}else if(nums.length>=2){g.score1=nums[0];g.score2=nums[1]}
+      const agents=[];
+      row.querySelectorAll('img').forEach(img=>{
+        const c=((img.getAttribute('src')||'')+' '+(img.getAttribute('alt')||'')+' '+(img.getAttribute('title')||'')).toLowerCase();
+        for(const a of AGENTS){if(c.includes(a.toLowerCase())){agents.push(a);break}}
+      });
+      g.t1agents=agents.slice(0,5);g.t2agents=agents.slice(5,10);
+      if(g.mapName||agents.length>0||g.score1>0)m.maps.push(g);
+    });
+    // MVP
+    popup.querySelectorAll('*').forEach(el=>{const t=el.textContent||'';if(t.includes('MVP')&&!t.includes('Map Veto')&&el.children.length<5){const mm=t.match(/MVP[:\s]*([A-Za-z0-9_]+)/i);if(mm&&!m.mvp)m.mvp=mm[1].trim()}});
+    // Veto
+    const vt=popup.querySelector('.brkts-popup-mapveto table,table.wikitable-striped');
+    if(vt)vt.querySelectorAll('tr').forEach(r=>{const c=r.querySelectorAll('td,th');if(c.length>=3){const a=c[1]?.textContent?.trim();if(/ban|pick|decider/i.test(a))m.veto.push({t1:c[0]?.textContent?.trim(),action:a,t2:c[2]?.textContent?.trim()})}});
+    if(m.team1||m.team2||m.maps.length>0)matches.push(m);
+  });
+  return matches;
+}
+
+function liqMatchLookup(liqMatches,match){
+  if(!liqMatches||!liqMatches.length)return null;
+  // Match by opponent name + series score
+  const oppLc=match.opp.toLowerCase();const tagLc=(match.tag||'').toLowerCase();
+  const mScore=`${match.bs}:${match.os}`;const mScoreR=`${match.os}:${match.bs}`;
+  for(const lm of liqMatches){
+    const t1=lm.team1.toLowerCase(),t2=lm.team2.toLowerCase();
+    const isBLG1=t1.includes('bilibili')||t1.includes('blg');
+    const isBLG2=t2.includes('bilibili')||t2.includes('blg');
+    const oppSide=isBLG1?t2:t1;
+    if(!oppSide.includes(oppLc)&&!oppSide.includes(tagLc)&&!oppLc.includes(oppSide.split(' ')[0]))continue;
+    // Check score
+    const lScore=lm.score;
+    if(isBLG1&&lScore===mScore)return{...lm,blgSide:1};
+    if(isBLG2&&lScore===mScoreR)return{...lm,blgSide:2};
+    // Loose: just opponent match
+    if(isBLG1||isBLG2)return{...lm,blgSide:isBLG1?1:2};
+  }
+  return null;
+}
+
+// Global cache for per-match LP detail lookups
+const liqMatchDetailCache={};// "y_ti_mi" → liqMatch or null
+
+async function loadLiqDetail(y,ti,mi){
+  const key=`${y}_${ti}_${mi}`;
+  const btnEl=document.getElementById(`liq-btn-${key}`);
+  if(btnEl)btnEl.innerHTML='<span class="dot-load" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 1s infinite;margin-right:4px"></span>로딩 중...';
+  const t=allData[String(y)][ti],m=t.matches[mi];
+  const lpPage=LP_TOURN_MAP[t.tournament];
+  if(!lpPage){if(btnEl)btnEl.textContent='❓ LP 페이지 매핑 없음';return}
+  const blgMatches=await liqFetchTournDetail(lpPage);
+  if(!blgMatches){if(btnEl)btnEl.textContent='❌ 로드 실패';return}
+  const found=liqMatchLookup(blgMatches,m);
+  liqMatchDetailCache[key]=found;
+  // Re-render detail
+  const wid=`w_${y}_${ti}_${mi}`;
+  const panel=document.getElementById(wid)?.querySelector('.di');
+  if(panel)panel.innerHTML=detHTML(m,t.tournament,t.intl);
 }
 
 // ===== LOCAL STATS: MAP WIN RATES + H2H =====
