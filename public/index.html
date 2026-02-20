@@ -34,6 +34,8 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 .live-dot{width:8px;height:8px;border-radius:50%;background:var(--win);box-shadow:0 0 8px var(--win);animation:lp 1.5s infinite}
 .live-dot.loading{background:var(--blue);box-shadow:0 0 8px var(--blue)}
 .live-dot.error{background:var(--loss);box-shadow:0 0 8px var(--loss);animation:none}
+.sync-badge{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--dim);display:flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;background:var(--s2);border:1px solid var(--s3)}
+.sync-dot{width:6px;height:6px;border-radius:50%;display:inline-block}.sync-dot.syncing{background:#4d8bff;animation:lp 1s infinite}.sync-dot.done{background:var(--win)}.sync-dot.err{background:var(--loss)}
 @keyframes lp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
 .live-text{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim)}
 .refresh-btn{padding:4px 12px;border-radius:6px;border:1px solid var(--brd2);background:transparent;color:var(--blue);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s}
@@ -432,7 +434,7 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
   <h1 style="font-size:clamp(16px,2.5vw,24px);margin-top:4px;color:var(--dim)">실시간 대전 기록 & 결과</h1>
   <p class="hero-sub"><strong>VCT China</strong> · whz · Knight · nephh · rushia · bud</p>
 </div>
-<div class="live-bar"><span class="live-dot loading" id="liveDot"></span><span class="live-text" id="liveText">데이터 로드 중...</span><button class="refresh-btn" id="refreshBtn" onclick="fetchLiveData()" disabled><span id="refreshIcon">↻</span> 새로고침</button><button class="notif-btn" id="notifBtn" onclick="toggleNotif()" title="알림 설정"><span id="notifIcon">🔔</span></button></div>
+<div class="live-bar"><span class="live-dot loading" id="liveDot"></span><span class="live-text" id="liveText">데이터 로드 중...</span><span class="sync-badge" id="syncBadge"></span><button class="refresh-btn" id="refreshBtn" onclick="fetchLiveData()" disabled><span id="refreshIcon">↻</span> 새로고침</button><button class="notif-btn" id="notifBtn" onclick="toggleNotif()" title="알림 설정"><span id="notifIcon">🔔</span></button></div>
 <div class="stats-bar" id="statsBar"></div>
 
 <!-- PAGE NAV -->
@@ -1854,6 +1856,153 @@ async function loadLiqDetail(y,ti,mi){
   if(panel)panel.innerHTML=detHTML(m,t.tournament,t.intl);
 }
 
+// ===== LIQUIPEDIA AUTO SYNC (Results → 대회 → BLG 경기 자동 추가) =====
+let liqSyncStatus='idle';// idle|syncing|done|error
+let liqSyncCount=0;
+
+function updateSyncBadge(){
+  const el=document.getElementById('syncBadge');if(!el)return;
+  if(liqSyncStatus==='syncing')el.innerHTML=`<span class="sync-dot syncing"></span> LP 동기화 중...`;
+  else if(liqSyncStatus==='done')el.innerHTML=liqSyncCount>0?`<span class="sync-dot done"></span> ${liqSyncCount}경기 추가됨`:`<span class="sync-dot done"></span> 최신 상태`;
+  else if(liqSyncStatus==='error')el.innerHTML=`<span class="sync-dot err"></span> 동기화 실패`;
+  else el.innerHTML='';
+}
+
+async function liqAutoSync(){
+  liqSyncStatus='syncing';updateSyncBadge();liqSyncCount=0;
+  try{
+    // Step 1: Fetch Results page → discover tournaments + LP page links
+    const rd=await liqFetch({action:'parse',page:'Bilibili_Gaming/Results',prop:'text'});
+    if(!rd?.parse?.text?.['*']){liqSyncStatus='error';updateSyncBadge();return}
+    const doc=new DOMParser().parseFromString(rd.parse.text['*'],'text/html');
+    const tournaments=[];
+    doc.querySelectorAll('tr').forEach(row=>{
+      const cells=row.querySelectorAll('td');if(cells.length<4)return;
+      const date=cells[0]?.textContent?.trim()||'';
+      const place=cells[1]?.textContent?.trim()||'';
+      const eventCell=cells[4]||cells[3];
+      const event=eventCell?.textContent?.trim()||'';
+      if(!date||!event)return;
+      const yr=date.substring(0,4);
+      // Extract LP page path from <a href="/valorant/...">
+      let lpPage=null;
+      (eventCell||row).querySelectorAll('a[href]').forEach(a=>{
+        const h=a.getAttribute('href')||'';
+        if(h.startsWith('/valorant/')&&!h.includes('index.php')&&!h.includes('Category:')&&h.length>15){
+          lpPage=decodeURIComponent(h.replace('/valorant/',''));
+        }
+      });
+      // Fallback to manual map
+      if(!lpPage){
+        for(const[k,v]of Object.entries(LP_TOURN_MAP)){
+          if(event.includes(k)||k.includes(event.substring(0,20))){lpPage=v;break}
+        }
+      }
+      if(!lpPage){
+        const ev=event.toLowerCase().replace(/[^a-z0-9]/g,'');
+        for(const[k,v]of Object.entries(LP_TOURN_MAP)){
+          const kn=k.toLowerCase().replace(/[^a-z0-9]/g,'');
+          if(kn.includes(ev.substring(0,12))||ev.includes(kn.substring(0,12))){lpPage=v;break}
+        }
+      }
+      tournaments.push({date,place,event,lpPage,yr});
+    });
+    console.log(`📡 LP AutoSync: ${tournaments.length}개 대회 발견, ${tournaments.filter(t=>t.lpPage).length}개 LP 매핑`);
+
+    // Step 2: Determine which tournaments need fetching
+    // Current year = always fetch, previous year = fetch if < 6 months old
+    const now=new Date();const curYr=String(now.getFullYear());
+    const sixMonthsAgo=new Date(now);sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
+    const sixStr=sixMonthsAgo.toISOString().substring(0,10);
+    const toFetch=tournaments.filter(t=>t.lpPage&&(t.yr===curYr||t.date>=sixStr));
+    const fetched=new Set();
+
+    // Step 3: Fetch each tournament and merge BLG matches
+    for(let i=0;i<toFetch.length;i++){
+      const t=toFetch[i];
+      if(fetched.has(t.lpPage))continue;
+      fetched.add(t.lpPage);
+      try{
+        const blgMatches=await liqFetchTournDetail(t.lpPage);
+        if(!blgMatches||!blgMatches.length)continue;
+        // Merge into allData
+        const yr=t.yr;
+        if(!allData[yr])allData[yr]=[];
+        // Find or create tournament group
+        let tg=allData[yr].find(g=>g.tournament===t.event);
+        if(!tg){
+          // Try fuzzy match
+          const evLc=t.event.toLowerCase();
+          tg=allData[yr].find(g=>g.tournament.toLowerCase().includes(evLc.substring(0,15))||evLc.includes(g.tournament.toLowerCase().substring(0,15)));
+        }
+        const isIntl=!!(t.event.match(/Champions|Masters|EWC|Esports World Cup|Radiant.*Invitational|SOOP|ACL|CEFSCC|HERO/i));
+        if(!tg){tg={tournament:t.event,intl:isIntl,matches:[]};allData[yr].push(tg)}
+        // Process each BLG match
+        blgMatches.forEach(lm=>{
+          const blgIsT1=(lm.team1||'').toLowerCase().includes('bilibili')||(lm.team1||'').toLowerCase().includes('blg');
+          const oppName=blgIsT1?lm.team2:lm.team1;
+          if(!oppName)return;
+          const[s1,s2]=(lm.score||'0:0').split(':').map(Number);
+          const bs=blgIsT1?s1:s2;const os=blgIsT1?s2:s1;
+          const isWin=bs>os;
+          // Parse date from LP popup
+          let mDate='';
+          if(lm.date){
+            const dm=lm.date.match(/(\w+)\s+(\d+),\s+(\d{4})/);
+            if(dm){const mo=['January','February','March','April','May','June','July','August','September','October','November','December'].indexOf(dm[1]);
+              if(mo>=0)mDate=`${dm[3]}-${String(mo+1).padStart(2,'0')}-${dm[2].padStart(2,'0')}`}
+          }
+          // Build maps
+          const side=blgIsT1?1:2;
+          const maps=lm.maps.filter(g=>g.mapName||g.score1>0||g.t1agents.length>0).map(g=>({
+            n:g.mapName||'?',
+            b:side===1?g.score1:g.score2,
+            o:side===1?g.score2:g.score1,
+            r:(side===1?g.score1:g.score2)>(side===1?g.score2:g.score1)?'win':'loss',
+          })).filter(g=>g.b>0||g.o>0);
+          const fmt=maps.length>3?'Bo5':'Bo3';
+          const oppTag=guessTag(oppName);
+          // Check if match already exists (by date + opponent)
+          const existsInTg=tg.matches.some(x=>{
+            if(x.tag===oppTag||x.opp===oppName)return x.date===mDate||(!mDate);
+            const xOppLc=x.opp.toLowerCase(),oppLc=oppName.toLowerCase();
+            return(xOppLc.includes(oppLc.split(' ')[0])||oppLc.includes(xOppLc.split(' ')[0]))&&x.date===mDate;
+          });
+          // Also check other tournament groups in same year (tournament name mismatch)
+          const existsInYear=allData[yr].some(g2=>g2.matches.some(x=>{
+            if(x.date!==mDate)return false;
+            return x.tag===oppTag||x.opp===oppName||x.opp.toLowerCase().includes(oppName.toLowerCase().split(' ')[0]);
+          }));
+          if(!existsInTg&&!existsInYear&&mDate&&bs+os>0){
+            tg.matches.push({date:mDate,opp:oppName,tag:oppTag,stage:'',fmt,bs,os,r:isWin?'win':'loss',maps});
+            liqSyncCount++;
+            console.log(`📡 +NEW: ${mDate} BLG vs ${oppName} ${bs}:${os} (${t.event})`);
+          }
+          // Also populate liqMatchDetailCache for agent display
+          const matchKey=findMatchKey(yr,tg,oppName,oppTag,mDate);
+          if(matchKey){const blgSide2=blgIsT1?1:2;liqMatchDetailCache[matchKey]={...lm,blgSide:blgSide2}}
+        });
+      }catch(e){console.log(`📡 LP fetch fail: ${t.lpPage}`,e.message)}
+      // Rate limit: 2.5s between requests
+      if(i<toFetch.length-1)await new Promise(r=>setTimeout(r,2500));
+    }
+    // Step 4: Re-render
+    renderAll();
+    liqSyncStatus='done';updateSyncBadge();
+    console.log(`📡 LP AutoSync 완료: ${liqSyncCount}개 새 경기 추가`);
+  }catch(e){
+    console.error('LP AutoSync error:',e);
+    liqSyncStatus='error';updateSyncBadge();
+  }
+}
+
+function findMatchKey(yr,tg,oppName,oppTag,date){
+  const tIdx=allData[yr]?.indexOf(tg);if(tIdx<0)return null;
+  const mIdx=tg.matches.findIndex(x=>(x.tag===oppTag||x.opp===oppName)&&x.date===date);
+  if(mIdx<0)return null;
+  return`${yr}_${tIdx}_${mIdx}`;
+}
+
 // ===== LOCAL STATS: MAP WIN RATES + H2H =====
 function calcMapStats(){
   const maps={};
@@ -2827,6 +2976,8 @@ setTimeout(fetchTransfers,8000);
 setTimeout(fetchStandings,4000);setInterval(fetchStandings,10*60*1000);
 // Upcoming schedule: fetch at load + every 10min
 setTimeout(fetchUpcomingSchedule,6000);setInterval(fetchUpcomingSchedule,10*60*1000);
+
+setTimeout(liqAutoSync,12000);// LP auto-sync: new matches + agent cache
 </script>
 
 <!-- VOD MODAL -->
