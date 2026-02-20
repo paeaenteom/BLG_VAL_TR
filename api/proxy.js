@@ -39,11 +39,16 @@ export default async function handler(req, res) {
     }
 
     const resp = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
-    const text = await resp.text();
+    const ct = resp.headers.get('content-type') || 'application/json';
+    res.setHeader('Content-Type', ct);
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
 
-    res.setHeader('Content-Type', resp.headers.get('content-type') || 'application/json');
-    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
-    return res.status(resp.status).send(text);
+    // Binary content (images) → buffer, otherwise text
+    if (ct.startsWith('image/')) {
+      const buf = Buffer.from(await resp.arrayBuffer());
+      return res.status(resp.status).send(buf);
+    }
+    return res.status(resp.status).send(await resp.text());
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
