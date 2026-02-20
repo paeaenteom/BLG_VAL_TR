@@ -14,7 +14,6 @@ export default async function handler(req, res) {
     'liquipedia.net',
     'esports-api.service.valorantesports.com',
     'valorant.fandom.com',
-    'valorant.fandom.com',
   ];
 
   let parsed;
@@ -32,6 +31,9 @@ export default async function handler(req, res) {
     }
     if (parsed.hostname.includes('liquipedia.net')) {
       headers['Accept-Encoding'] = 'gzip';
+      headers['Api-User-Agent'] = 'BLGValTracker/1.0 (contact@blg-val.vercel.app)';
+      headers['User-Agent'] = 'BLGValTracker/1.0 (contact@blg-val.vercel.app)';
+      headers['Accept'] = 'application/json';
     }
     if (parsed.hostname.includes('bilibili.com')) {
       headers['Referer'] = 'https://www.bilibili.com';
