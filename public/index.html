@@ -639,48 +639,61 @@ async function fetchRiotTeamLogos(){
 
 // Liquipedia commons API → proxy로 이미지 서빙 (403 우회)
 async function fetchLiquipediaLogos(){
-  const LP_FILE_MAP={
+  // tag → 풀네임 prefix (Liquipedia 파일명 규칙)
+  const LP_NAME={
     KRÜ:'KRU_Esports',LGD:'LGD_Gaming',RNG:'Royal_Never_Give_Up',
     WBG:'Weibo_Gaming',NIP:'Ninjas_in_Pyjamas',ASE:'All_Spark_Esports',
     NWG:'Nongshim_World_Gate',ME:'Mystic_Esports',
     BLG:'Bilibili_Gaming',EDG:'EDward_Gaming',FPX:'FunPlus_Phoenix',
     DRG:'Dragon_Ranger_Gaming',WOL:'Wolves_Esports',TE:'Trace_Esports',
-    TYL:'Tyloo',NOVA:'Nova_Esports',TEC:'Titan_Esports_Club',
+    TYL:'TYLOO',NOVA:'Nova_Esports',TEC:'Titan_Esports_Club',
     AG:'AG_Esports',JDG:'JD_Gaming',G2:'G2_Esports',SEN:'Sentinels',
-    NRG:'NRG',MIBR:'MIBR',C9:'Cloud9',EG:'Evil_Geniuses',
+    NRG:'NRG_Esports',MIBR:'MIBR',C9:'Cloud9',EG:'Evil_Geniuses',
     LOUD:'LOUD',FURIA:'FURIA_Esports',LEV:'Leviatan',
     TL:'Team_Liquid',FNC:'Fnatic',KC:'Karmine_Corp',NAVI:'Natus_Vincere',
-    VIT:'Team_Vitality',PRX:'Paper_Rex',T1:'T1',DRX:'DRX','GEN':'Gen.G',
+    VIT:'Team_Vitality',PRX:'Paper_Rex',T1:'T1',DRX:'DRX',GEN:'Gen.G',
     RRQ:'Rex_Regum_Qeon',NS:'Nongshim_RedForce',DFM:'DetonatioN_FocusMe',
-    '100T':'100_Thieves',XLG:'XLGA',TYL:'TYLOO',Wolves:'Wolves_Esports'
+    '100T':'100_Thieves',XLG:'XLGA',Wolves:'Wolves_Esports'
   };
   // Only fetch for teams still using SVG data URIs
-  const svgTeams=Object.keys(LOGOS).filter(k=>LOGOS[k].startsWith('data:')&&LP_FILE_MAP[k]);
+  const svgTeams=Object.keys(LOGOS).filter(k=>LOGOS[k].startsWith('data:')&&LP_NAME[k]);
   if(!svgTeams.length){console.log('🖼️ Liquipedia: 보완 필요 없음');return}
   console.log(`🖼️ Liquipedia: ${svgTeams.length}개 팀 로고 보완 시도 (${svgTeams.join(', ')})`);
 
   const COMMONS='https://liquipedia.net/commons/api.php';
   for(const tag of svgTeams){
-    const prefix=LP_FILE_MAP[tag];
+    const prefix=LP_NAME[tag];
     if(!prefix)continue;
     try{
-      // Query commons API for file URL via proxy
-      const suffixes=['_allmode.png','_darkmode.png','_full_allmode.png','_full_darkmode.png'];
-      const titles=suffixes.map(s=>`File:${prefix}${s}`).join('|');
-      const d=await proxyFetchJSON(`${COMMONS}?action=query&titles=${encodeURIComponent(titles)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
-      if(!d?.query?.pages)continue;
+      // allimages prefix 검색 — 풀네임으로 해당 팀 모든 파일 탐색
+      const d=await proxyFetchJSON(`${COMMONS}?action=query&list=allimages&aiprefix=${encodeURIComponent(prefix)}&ailimit=30&format=json`);
+      const imgs=d?.query?.allimages||[];
+      if(!imgs.length){console.log(`🖼️ Liquipedia: ${tag} (${prefix}) — 파일 없음`);continue}
 
-      // Find best match (prefer allmode > darkmode > full)
-      const pages=Object.values(d.query.pages).filter(p=>p.pageid>0&&p.imageinfo?.length);
-      if(!pages.length)continue;
-      pages.sort((a,b)=>{
-        const score=n=>(n||'').includes('allmode')?0:(n||'').includes('darkmode')?1:2;
-        return score(a.title)-score(b.title);
-      });
-      const imgUrl=pages[0].imageinfo[0].thumburl||pages[0].imageinfo[0].url;
+      // 로고 파일 우선순위: allmode > darkmode > lightmode > logo > 기본
+      const logoPriority=[
+        /_allmode\.(png|svg)$/i,
+        /_darkmode\.(png|svg)$/i,
+        /_full_allmode\.(png|svg)$/i,
+        /_full_darkmode\.(png|svg)$/i,
+        /_lightmode\.(png|svg)$/i,
+        /logo/i,
+      ];
+      // 비로고 파일 제외 (선수사진, 맵, 결과 등)
+      const excluded=/player|map|result|banner|wordmark|trophy|bg_|header|screenshot/i;
+      const candidates=imgs.filter(f=>!excluded.test(f.name));
+      if(!candidates.length)continue;
 
-      // Use proxy URL as img src (bypasses Liquipedia 403 hotlink block)
-      const proxiedUrl=OWN_PROXY(imgUrl);
+      let best=null;
+      for(const pat of logoPriority){
+        best=candidates.find(f=>pat.test(f.name));
+        if(best)break;
+      }
+      if(!best) best=candidates[0]; // 아무거나라도
+
+      // thumburl 생성 (96px)
+      const imgUrl=best.url.replace(/\/commons\/images\//,'/commons/images/thumb/')+'?width=96';
+      const proxiedUrl=OWN_PROXY(best.url);
       LOGOS[tag]=proxiedUrl;
       logoCache[tag]=proxiedUrl;
 
@@ -688,9 +701,9 @@ async function fetchLiquipediaLogos(){
       document.querySelectorAll(`img.tlogo[alt="${tag}"]`).forEach(el=>{if(el.src.startsWith('data:'))el.src=proxiedUrl});
       document.querySelectorAll('span.tlogo-ph').forEach(el=>{
         if(el.textContent===(tag[0]||''))el.outerHTML=`<img src="${proxiedUrl}" class="tlogo" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph\\'>${tag[0]}</span>'">`});
-      console.log(`🖼️ Liquipedia 보완: ${tag} ← ${prefix}`);
-    }catch(e){}
-    await new Promise(r=>setTimeout(r,2000)); // Liquipedia rate limit
+      console.log(`🖼️ Liquipedia 보완: ${tag} ← ${best.name}`);
+    }catch(e){console.log(`🖼️ Liquipedia 실패: ${tag}`,e.message)}
+    await new Promise(r=>setTimeout(r,2000)); // Liquipedia rate limit 존중
   }
   const total=Object.keys(LOGOS).filter(k=>LOGOS[k]&&!LOGOS[k].startsWith('data:')).length;
   console.log(`🖼️ 최종: ${total}개 팀 로고 로드 완료`);
