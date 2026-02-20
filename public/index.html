@@ -519,9 +519,9 @@ const LOGOS={
   NS:VE+"1674219422693_NS_.png",
   DFM:VE+"1675669923678_190px-DetonatioN_FocusMe_2022_darkmode1.png",
   // Teams without hardcoded logos (filled by Riot Esports API or SVG fallback)
-  KRÜ:'https://liquipedia.net/commons/Special:Redirect/file/KRU_Esports_full_darkmode.png',LGD:'https://owcdn.net/img/6549c2de5598b.png',RNG:'https://owcdn.net/img/63eb523921a3e.png',WBG:'https://owcdn.net/img/62232bd14e5d7.png',NIP:'',ASE:'https://owcdn.net/img/62bd5058300a4.png',NWG:'https://owcdn.net/img/6548758279b91.png',ME:'https://owcdn.net/img/634673899ad29.png',
+  KRÜ:'',LGD:'',RNG:'',WBG:'',NIP:'',ASE:'',NWG:'',ME:'',
   // 2023 FGC / minor teams
-  iG:'',iNv:'https://owcdn.net/img/60d2691f1a152.png',NTER:'https://owcdn.net/img/60d26a046c0ac.png',TTG:'https://owcdn.net/img/63eb56072ae3f.png',RA:'','4AM':'https://owcdn.net/img/63eb550dc51f5.png',NOP:'https://owcdn.net/img/612fcc4c7992d.png',JJH:'https://owcdn.net/img/642afe112f136.png',NH:'https://owcdn.net/img/640722a56e28f.png',KZ:'https://owcdn.net/img/63eb5b7da623b.png',GK:'https://owcdn.net/img/640e7f9282b65.png',DYG:'https://owcdn.net/img/63f2618ba8574.png',VLG:'https://liquipedia.net/commons/images/thumb/4/4f/VLG_China_allmode.png/100px-VLG_China_allmode.png',O3O:'https://owcdn.net/img/6340079e4549b.png',
+  iG:'',iNv:'',NTER:'',TTG:'',RA:'','4AM':'',NOP:'',JJH:'',NH:'',KZ:'',GK:'',DYG:'',VLG:'',O3O:'',
 };
 // Generate SVG text logo for teams without images
 function _tsvg(tag,bg='#333',fg='#fff'){
@@ -637,8 +637,8 @@ async function fetchLiquipediaLogos(){
   // tag → [파일명 prefix, 페이지명] (Liquipedia 규칙)
   const LP_NAME={
     KRÜ:'KRU_Esports',LGD:'LGD_Gaming',RNG:'Royal_Never_Give_Up',
-    WBG:'Weibo_Gaming',NIP:'Ninjas_in_Pyjamas',ASE:'All_Spark_Esports',
-    NWG:'Nongshim_World_Gate',ME:'Mystic_Esports',
+    WBG:'Weibo_Gaming',NIP:'Ninjas_in_Pyjamas',ASE:'Attacking_Soul_Esports',
+    NWG:'Night_Wings_Gaming',ME:'Monarch_Effect',
     BLG:'Bilibili_Gaming',EDG:'EDward_Gaming',FPX:'FunPlus_Phoenix',
     DRG:'Dragon_Ranger_Gaming',WOL:'Wolves_Esports',TE:'Trace_Esports',
     TYL:'TYLOO',NOVA:'Nova_Esports',TEC:'Titan_Esports_Club',
@@ -649,7 +649,11 @@ async function fetchLiquipediaLogos(){
     VIT:'Team_Vitality',PRX:'Paper_Rex',T1:'T1',DRX:'DRX',GEN:'Gen.G',
     RRQ:'Rex_Regum_Qeon',NS:'Nongshim_RedForce',DFM:'DetonatioN_FocusMe',
     '100T':'100_Thieves',XLG:'XLGA',Wolves:'Wolves_Esports',
-    iG:'Invictus_Gaming',RA:'Rare_Atom'
+    iG:'Invictus_Gaming',RA:'Rare_Atom',
+    iNv:'Invincible_Gaming',NTER:'Shenzhen_NTER',TTG:'Totoro_Gaming',
+    '4AM':'Four_Angry_Men',NOP:'Number_One_Player',JJH:'JiJieHao',
+    NH:'NewHappy',KZ:'Kingzone',GK:'Gank_Gaming',
+    DYG:'Douyu_Gaming',VLG:'VLG_Esports',O3O:'Oxyg3niOus'
   };
   // 페이지명이 파일명과 다른 팀 (특수문자 등)
   const LP_PAGE={KRÜ:'KRÜ_Esports',LEV:'Leviatán'};
