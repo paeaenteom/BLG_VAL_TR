@@ -13,6 +13,8 @@ export default async function handler(req, res) {
     'api.bilibili.com',
     'liquipedia.net',
     'esports-api.service.valorantesports.com',
+    'valorant.fandom.com',
+    'valorant.fandom.com',
   ];
 
   let parsed;
