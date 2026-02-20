@@ -195,6 +195,7 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 .ag-row{display:flex;align-items:center;gap:4px;flex:1}.ag-side{font-size:9px;font-weight:700;font-family:'Orbitron',sans-serif;padding:2px 6px;border-radius:3px;min-width:32px;text-align:center}
 .ag-side.blg{background:rgba(0,229,160,.1);color:#00e5a0}.ag-side.opp{background:rgba(255,77,106,.1);color:#ff4d6a}
 .ag-row img{transition:transform .15s}.ag-row img:hover{transform:scale(1.4);z-index:2}.ag-name{font-size:9px;padding:2px 4px;background:var(--s3);border-radius:3px;color:var(--dim)}
+.ag-mvp{font-size:10px;color:#ffb84d;font-weight:600;display:flex;align-items:center;padding-left:4px;white-space:nowrap}
 .liq-mvp{display:flex;align-items:center;gap:8px;padding:8px 12px;margin-top:8px;background:linear-gradient(135deg,rgba(255,184,77,.06),rgba(255,184,77,.02));border:1px solid rgba(255,184,77,.15);border-radius:8px}
 .mvp-label{font-size:10px;font-weight:700;color:#ffb84d;font-family:'JetBrains Mono',monospace}.mvp-name{font-size:13px;font-weight:700;color:#fff}
 .liq-veto{padding:8px 12px;margin-top:6px;background:var(--s2);border:1px solid var(--s3);border-radius:8px}
@@ -1127,7 +1128,7 @@ let btnKey='';
 for(const y of Object.keys(allData)){const ts=allData[y];for(let ti=0;ti<ts.length;ti++){const t=ts[ti];for(let mi=0;mi<t.matches.length;mi++){if(t.matches[mi]===m){btnKey=`${y}_${ti}_${mi}`;break}}}}
 
 let h=mapHTMLEx(m.maps,liq,m);
-if(liq?.mvp)h+=`<div class="liq-mvp"><span class="mvp-label">⭐ MVP</span><span class="mvp-name">${liq.mvp}</span></div>`;
+if(liq?.mvp)h+=`<div class="liq-mvp"><span class="mvp-label">⭐ 시리즈 MVP</span><span class="mvp-name">${liq.mvp}</span></div>`;
 if(liq?.veto?.length)h+=`<div class="liq-veto"><span class="veto-label">MAP VETO</span><div class="veto-flow">${liq.veto.map(v=>`<span class="veto-step"><span class="vt1">${v.t1||''}</span><span class="vact">${v.action}</span><span class="vt2">${v.t2||''}</span></span>`).join('')}</div></div>`;
 h+=`<div class="dn"><div class="dnt">경기 분석</div><div class="dtx">${narr}</div></div>`;
 h+=`<div class="dmeta"><span class="mt">${tn}</span><span class="mt">${m.fmt}</span><span class="mt">${m.stage}</span><span class="mt ${m.r==='win'?'mtwn':'mtls'}">${m.r==='win'?'✓ 승리':'✗ 패배'}</span>${il?'<span class="mt mtil">🌍 국제 대회</span>':''}<span class="mt">${m.date}</span>`;
@@ -1144,10 +1145,13 @@ let lm=null;
 if(liq?.maps){lm=liq.maps[i]||(liq.maps.find(g=>g.mapName&&g.mapName.includes(mp.n)))}
 const blgAgents=lm?(blgSide===1?lm.t1agents:lm.t2agents):[];
 const oppAgents=lm?(blgSide===1?lm.t2agents:lm.t1agents):[];
+const mapMvp=lm?.mvp||'';
 h+=`<div class="md"><div class="md-n">MAP ${i+1}</div><div class="md-m">${mp.n}</div><div class="md-bw"><div class="md-bar"><div class="md-bf ${w?'bw':'bl'}" style="width:${p}%"></div></div></div><div class="md-s"><span class="${w?'mws':'mls'}">${mp.b}</span><span class="msp">:</span><span class="${w?'mls':'mws'}">${mp.o}</span></div><div class="md-r ${w?'rw':'rl'}">${w?'W':'L'}</div>`;
-if(blgAgents.length||oppAgents.length){
+if(blgAgents.length||oppAgents.length||mapMvp){
   h+=`<div class="md-agents"><div class="ag-row"><span class="ag-side blg">BLG</span>${blgAgents.map(a=>agentImg(a,22)).join(' ')}</div>`;
-  h+=`<div class="ag-row"><span class="ag-side opp">${match.tag}</span>${oppAgents.map(a=>agentImg(a,22)).join(' ')}</div></div>`;
+  h+=`<div class="ag-row"><span class="ag-side opp">${match.tag}</span>${oppAgents.map(a=>agentImg(a,22)).join(' ')}</div>`;
+  if(mapMvp)h+=`<div class="ag-mvp">⭐ ${mapMvp}</div>`;
+  h+=`</div>`;
 }
 h+=`</div>`});return h+'</div>'}
 
@@ -1369,7 +1373,10 @@ async function toggleMapAgents(el,y,ti,mi,mapIdx){
   let h='';
   if(ba.length){h+=`<div class="ma-row"><span class="ma-side blg">BLG</span>${ba.map(a=>agentImg(a,24)).join('')}</div>`}
   if(oa.length){h+=`<div class="ma-row"><span class="ma-side opp">${m.tag}</span>${oa.map(a=>agentImg(a,24)).join('')}</div>`}
-  if(liq.mvp){h+=`<div class="ma-mvp">⭐ ${liq.mvp}</div>`}
+  const mapMvp=lm.mvp||'';
+  const matchMvp=liq.mvp||'';
+  if(mapMvp){h+=`<div class="ma-mvp">⭐ MAP MVP: ${mapMvp}</div>`}
+  else if(matchMvp){h+=`<div class="ma-mvp">⭐ ${matchMvp}</div>`}
   pop.innerHTML=h||'<div class="ma-err">에이전트 없음</div>';
 }
 
@@ -1792,7 +1799,7 @@ function liqParsePopups(doc){
     if(de)m.date=de.textContent?.trim()||'';
     // Maps
     popup.querySelectorAll('.brkts-popup-body-game').forEach(row=>{
-      const g={mapName:'',score1:0,score2:0,t1agents:[],t2agents:[]};
+      const g={mapName:'',score1:0,score2:0,t1agents:[],t2agents:[],mvp:''};
       row.querySelectorAll('a').forEach(a=>{const t=(a.getAttribute('title')||a.textContent||'').trim();if(MAPS.some(mn=>t.includes(mn)))g.mapName=t});
       if(!g.mapName){const txt=row.textContent;MAPS.forEach(mn=>{if(txt.includes(mn))g.mapName=mn})}
       const nums=[];row.querySelectorAll('td,.brkts-popup-spaced').forEach(el=>{const n=parseInt(el.textContent?.trim());if(!isNaN(n)&&n>=0&&n<=30)nums.push(n)});
@@ -1803,9 +1810,17 @@ function liqParsePopups(doc){
         for(const a of AGENTS){if(c.includes(a.toLowerCase())){agents.push(a);break}}
       });
       g.t1agents=agents.slice(0,5);g.t2agents=agents.slice(5,10);
+      // Per-map MVP: look for MVP text within this game row
+      row.querySelectorAll('*').forEach(el=>{
+        const t=el.textContent||'';
+        if(t.includes('MVP')&&!t.includes('Map Veto')&&el.children.length<3){
+          const mm=t.match(/MVP[:\s]*([A-Za-z0-9_]+)/i);
+          if(mm&&!g.mvp)g.mvp=mm[1].trim();
+        }
+      });
       if(g.mapName||agents.length>0||g.score1>0)m.maps.push(g);
     });
-    // MVP
+    // Match-level MVP (fallback, also scan full popup)
     popup.querySelectorAll('*').forEach(el=>{const t=el.textContent||'';if(t.includes('MVP')&&!t.includes('Map Veto')&&el.children.length<5){const mm=t.match(/MVP[:\s]*([A-Za-z0-9_]+)/i);if(mm&&!m.mvp)m.mvp=mm[1].trim()}});
     // Veto
     const vt=popup.querySelector('.brkts-popup-mapveto table,table.wikitable-striped');
@@ -3097,7 +3112,7 @@ function embedBilibili(bvid, biliTitle){
   title.textContent=biliTitle||'VOD (Bilibili)';
   
   // First show player with p=1, then fetch part list
-  body.innerHTML=`<iframe id="biliFrame" src="https://player.bilibili.com/player.html?bvid=${bvid}&page=1&autoplay=1&high_quality=1&danmaku=0" allow="autoplay; fullscreen" scrolling="no" frameborder="0" style="width:100%;height:100%;border:0"></iframe>`;
+  body.innerHTML=`<iframe id="biliFrame" src="https://player.bilibili.com/player.html?bvid=${bvid}&page=1&autoplay=1&high_quality=1&quality=127&danmaku=0" allow="autoplay; fullscreen" scrolling="no" frameborder="0" style="width:100%;height:100%;border:0"></iframe>`;
   
   // Fetch video info to get part count
   fetchBiliParts(bvid);
@@ -3139,7 +3154,7 @@ function createEl(html){
 
 function switchBiliPart(bvid, page, btn){
   const frame=document.getElementById('biliFrame');
-  if(frame) frame.src=`https://player.bilibili.com/player.html?bvid=${bvid}&page=${page}&autoplay=1&high_quality=1&danmaku=0`;
+  if(frame) frame.src=`https://player.bilibili.com/player.html?bvid=${bvid}&page=${page}&autoplay=1&high_quality=1&quality=127&danmaku=0`;
   // Update active button
   document.querySelectorAll('.bili-part-btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
