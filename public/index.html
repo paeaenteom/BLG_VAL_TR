@@ -491,6 +491,7 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 <div class="footer">실시간 데이터 · <a href="https://vlr.gg/team/12498/bilibili-gaming" target="_blank">VLR.gg</a> · <a href="https://liquipedia.net/valorant/Bilibili_Gaming" target="_blank">Liquipedia</a> · <a href="https://www.youtube.com/@VALORANTEsportsCN" target="_blank">YouTube</a> · <a href="https://space.bilibili.com/2071691173" target="_blank">B站 (无畏契约赛事)</a></div>
 
 <script src="lp-agents.js"></script>
+<script src="vlr-agents.js"></script>
 <script>
 
 // ===== UNIVERSAL FETCH (Vercel 자체 프록시 + fallback) =====
@@ -526,6 +527,7 @@ const LOGOS={
   FPX:VE+"1644542485597_download38.png",
   TYL:VE+"1768990500116_TYLLOGO.png",
   NOVA:VE+"1741178535000_NOVA.png",
+  NV:VE+"1741178535000_NOVA.png",
   TEC:VE+"1707127134615_TEC.png",
   TITAN:VE+"1707127134615_TEC.png",
   AG:VE+"1707126806655_AG.png",
@@ -571,6 +573,8 @@ function _tsvg(tag,bg='#333',fg='#fff'){
 const _LOGO_COLORS={KRÜ:'#5b21b6',LGD:'#dc2626',RNG:'#eab308',WBG:'#3b82f6',NIP:'#f59e0b',ASE:'#10b981',NWG:'#6366f1',ME:'#ec4899',Wolves:'#f97316',TBD:'#555',iG:'#b91c1c',iNv:'#059669',NTER:'#0284c7',TTG:'#7c3aed',RA:'#dc2626','4AM':'#eab308',NOP:'#6b7280',JJH:'#f59e0b',NH:'#2563eb',KZ:'#4f46e5',GK:'#14b8a6',DYG:'#f97316',VLG:'#8b5cf6',O3O:'#06b6d4'};
 Object.keys(LOGOS).forEach(k=>{if(!LOGOS[k])LOGOS[k]=_tsvg(k,_LOGO_COLORS[k]||'#333')});
 function L(tag,sz=''){const u=LOGOS[tag]||logoCache[tag];if(u&&u!=='pending'&&u!==false)return`<img src="${u}" class="tlogo ${sz}" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph ${sz}\\'>${tag[0]}</span>'">`;if(!LOGOS[tag]&&!logoCache[tag])fetchTeamLogo(tag);return`<span class="tlogo-ph ${sz}">${tag[0]||'?'}</span>`}
+const TAG_DISPLAY={NV:'NOVA'};
+function DT(tag){return TAG_DISPLAY[tag]||tag}
 
 // ===== RIOT ESPORTS API (valorantesports.com - free, no CORS!) =====
 const RIOT_ESPORTS_BASE='https://esports-api.service.valorantesports.com/persisted/val';
@@ -666,13 +670,16 @@ async function fetchRiotTeamLogos(){
     const filled=Object.keys(LOGOS).filter(k=>LOGOS[k]&&!LOGOS[k].startsWith('data:')).length;
     console.log(`🖼️ Riot Esports API: ${filled}개 팀 로고 로드`);
 
-    // Phase 2: Liquipedia fallback for teams still using SVG
-    await fetchLiquipediaLogos();
+    // Phase 2: Liquipedia fallback — deferred until after autoSync to avoid 429
+    // fetchLiquipediaLogos() is called separately via fetchLiquipediaLogosDeferred
   }catch(e){console.log('Team logo fetch failed:',e.message)}
 }
+function fetchLiquipediaLogosDeferred(){fetchLiquipediaLogos()}
 
 // Liquipedia commons API → proxy로 이미지 서빙 (403 우회)
 async function fetchLiquipediaLogos(){
+  let rateLimited=false;
+  const lpFetch=async(url)=>{if(rateLimited)return null;const r=await proxyFetchJSON(url);if(!r){rateLimited=true;console.log('🖼️ LP 429 감지 — 로고 보완 중단');return null}return r};
   // tag → [파일명 prefix, 페이지명] (Liquipedia 규칙)
   const LP_NAME={
     LGD:'LGD_Gaming',RNG:'Royal_Never_Give_Up',
@@ -680,7 +687,7 @@ async function fetchLiquipediaLogos(){
     NWG:'Night_Wings_Gaming',ME:'Monarch_Effect',
     BLG:'Bilibili_Gaming',EDG:'EDward_Gaming',FPX:'FunPlus_Phoenix',
     DRG:'Dragon_Ranger_Gaming',WOL:'Wolves_Esports',TE:'Trace_Esports',
-    TYL:'TYLOO',NOVA:'Nova_Esports',TEC:'Titan_Esports_Club',
+    TYL:'TYLOO',NOVA:'Nova_Esports',NV:'Nova_Esports',TEC:'Titan_Esports_Club',
     AG:'AG_Esports',JDG:'JD_Gaming',G2:'G2_Esports',SEN:'Sentinels',
     NRG:'NRG_Esports',MIBR:'MIBR',C9:'Cloud9',EG:'Evil_Geniuses',
     LOUD:'LOUD',FURIA:'FURIA_Esports',LEV:'Leviatan',
@@ -704,6 +711,7 @@ async function fetchLiquipediaLogos(){
   // valorant wiki API 사용 (commons는 403 차단됨, valorant은 로스터에서 검증됨)
   const VALWIKI='https://liquipedia.net/valorant/api.php';
   for(const tag of svgTeams){
+    if(rateLimited)break;
     const prefix=LP_NAME[tag];
     if(!prefix)continue;
     try{
@@ -713,7 +721,7 @@ async function fetchLiquipediaLogos(){
       const prefixes=[prefix];
       if(LP_PAGE[tag]){const alt=LP_PAGE[tag].replace(/ /g,'_');if(alt!==prefix)prefixes.push(alt)}
       const titles=prefixes.flatMap(p=>suffixes.map(s=>`File:${p}${s}`)).join('|');
-      const d=await proxyFetchJSON(`${VALWIKI}?action=query&titles=${encodeURIComponent(titles)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
+      const d=await lpFetch(`${VALWIKI}?action=query&titles=${encodeURIComponent(titles)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
       
       if(d?.query?.pages){
         const pages=Object.values(d.query.pages).filter(p=>p.pageid>0&&p.imageinfo?.length);
@@ -740,14 +748,14 @@ async function fetchLiquipediaLogos(){
           document.querySelectorAll('span.tlogo-ph').forEach(el=>{
             if(el.textContent===(tag[0]||''))el.outerHTML=`<img src="${proxiedUrl}" class="tlogo" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph\\'>${tag[0]}</span>'">`});
           console.log(`🖼️ Liquipedia 보완: ${tag} ← ${pages[0].title}`);
-          await new Promise(r=>setTimeout(r,3000));
+          await new Promise(r=>setTimeout(r,5000));
           continue;
         }
       }
 
       // Method 2: 팀 인포박스에서 정확한 로고 파일명 추출 (가장 정확)
       const teamPage=(LP_PAGE[tag]||prefix).replace(/_/g,' ');
-      const d2=await proxyFetchJSON(`${VALWIKI}?action=parse&page=${encodeURIComponent(teamPage)}&prop=wikitext&section=0&format=json`);
+      const d2=await lpFetch(`${VALWIKI}?action=parse&page=${encodeURIComponent(teamPage)}&prop=wikitext&section=0&format=json`);
       if(d2?.parse?.wikitext){
         const wt=typeof d2.parse.wikitext==='object'?d2.parse.wikitext['*']:d2.parse.wikitext;
         // |image= 또는 |image1= 에서 로고 파일명 추출
@@ -755,7 +763,7 @@ async function fetchLiquipediaLogos(){
         if(imgMatch){
           const logoFile=imgMatch[1].trim();
           console.log(`🖼️ LP M2 인포박스: ${tag} → ${logoFile}`);
-          const d3=await proxyFetchJSON(`${VALWIKI}?action=query&titles=${encodeURIComponent('File:'+logoFile)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
+          const d3=await lpFetch(`${VALWIKI}?action=query&titles=${encodeURIComponent('File:'+logoFile)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
           const p3=Object.values(d3?.query?.pages||{}).find(p=>p.imageinfo?.length);
           if(p3){
             const imgUrl=p3.imageinfo[0].thumburl||p3.imageinfo[0].url;
@@ -764,7 +772,7 @@ async function fetchLiquipediaLogos(){
             logoCache[tag]=proxiedUrl;
             document.querySelectorAll(`img.tlogo[alt="${tag}"]`).forEach(el=>{if(el.src.startsWith('data:'))el.src=proxiedUrl});
             console.log(`🖼️ Liquipedia 보완: ${tag} ← ${logoFile}`);
-            await new Promise(r=>setTimeout(r,3000));
+            await new Promise(r=>setTimeout(r,5000));
             continue;
           }
         }else{
@@ -775,7 +783,7 @@ async function fetchLiquipediaLogos(){
       }
 
       // Method 3: 팀 페이지 images 목록에서 팀명 매칭 (fallback)
-      const d4=await proxyFetchJSON(`${VALWIKI}?action=query&titles=${encodeURIComponent(teamPage)}&prop=images&imlimit=500&format=json`);
+      const d4=await lpFetch(`${VALWIKI}?action=query&titles=${encodeURIComponent(teamPage)}&prop=images&imlimit=500&format=json`);
       if(d4?.query?.pages){
         const pg=Object.values(d4.query.pages).find(p=>p.pageid>0);
         if(pg?.images?.length){
@@ -801,7 +809,7 @@ async function fetchLiquipediaLogos(){
           });
           console.log(`🖼️ LP M3: ${tag} 팀명 매칭 ${logoImgs.length}개${logoImgs.length?': '+logoImgs[0].title:''}`);
           if(logoImgs.length){
-            const d5=await proxyFetchJSON(`${VALWIKI}?action=query&titles=${encodeURIComponent(logoImgs[0].title)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
+            const d5=await lpFetch(`${VALWIKI}?action=query&titles=${encodeURIComponent(logoImgs[0].title)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
             const p5=Object.values(d5?.query?.pages||{}).find(p=>p.imageinfo?.length);
             if(p5){
               const imgUrl=p5.imageinfo[0].thumburl||p5.imageinfo[0].url;
@@ -815,7 +823,7 @@ async function fetchLiquipediaLogos(){
         }
       }
     }catch(e){console.log(`🖼️ Liquipedia 실패: ${tag}`,e.message)}
-    await new Promise(r=>setTimeout(r,3000));
+    await new Promise(r=>setTimeout(r,5000));
   }
   const total=Object.keys(LOGOS).filter(k=>LOGOS[k]&&!LOGOS[k].startsWith('data:')).length;
   console.log(`🖼️ 최종: ${total}개 팀 로고 로드 완료`);
@@ -999,7 +1007,7 @@ const baselineData = {
   ]},
   {tournament:"VCT 2024: China Stage 2",intl:false,matches:[
     {date:"2024-06-16",opp:"Wolves Esports",tag:"WOL",stage:"W1",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Sunset",b:13,o:5,r:"win"},{n:"Bind",b:13,o:7,r:"win"}]},
-    {date:"2024-06-23",opp:"Nova Esports",tag:"NOVA",stage:"W2",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Split",b:14,o:16,r:"loss"},{n:"Bind",b:13,o:9,r:"win"},{n:"Ascent",b:13,o:6,r:"win"}]},
+    {date:"2024-06-23",opp:"Nova Esports",tag:"NV",stage:"W2",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Split",b:14,o:16,r:"loss"},{n:"Bind",b:13,o:9,r:"win"},{n:"Ascent",b:13,o:6,r:"win"}]},
     {date:"2024-06-30",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"W3",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Lotus",b:13,o:11,r:"win"},{n:"Ascent",b:13,o:11,r:"win"}]},
     {date:"2024-07-06",opp:"EDward Gaming",tag:"EDG",stage:"W4",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Icebox",b:11,o:13,r:"loss"},{n:"Haven",b:8,o:13,r:"loss"}]},
     {date:"2024-07-16",opp:"JDG Esports",tag:"JDG",stage:"KO",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Sunset",b:13,o:9,r:"win"},{n:"Icebox",b:13,o:7,r:"win"}]},
@@ -1012,7 +1020,7 @@ const baselineData = {
   ]},
   {tournament:"FGC Invitational 2024",intl:false,matches:[
     {date:"2024-11-01",opp:"Xi Lai Gaming",tag:"XLG",stage:"UBQF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Ascent",b:10,o:13,r:"loss"},{n:"Pearl",b:13,o:6,r:"win"},{n:"Bind",b:15,o:13,r:"win"}]},
-    {date:"2024-11-06",opp:"Nova Esports",tag:"NOVA",stage:"UBSF",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Sunset",b:13,o:10,r:"win"},{n:"Pearl",b:13,o:9,r:"win"}]},
+    {date:"2024-11-06",opp:"Nova Esports",tag:"NV",stage:"UBSF",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Sunset",b:13,o:10,r:"win"},{n:"Pearl",b:13,o:9,r:"win"}]},
     {date:"2024-11-08",opp:"Wolves Esports",tag:"WOL",stage:"UBF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Split",b:9,o:13,r:"loss"},{n:"Bind",b:13,o:7,r:"win"},{n:"Ascent",b:13,o:6,r:"win"}]},
     {date:"2024-11-10",opp:"Wolves Esports",tag:"WOL",stage:"GF",fmt:"Bo5",bs:3,os:1,r:"win",maps:[{n:"Sunset",b:13,o:5,r:"win"},{n:"Abyss",b:13,o:11,r:"win"},{n:"Bind",b:9,o:13,r:"loss"},{n:"Ascent",b:16,o:14,r:"win"}]}
   ]},
@@ -1034,7 +1042,7 @@ const baselineData = {
   ]},
   {tournament:"China Evolution Series: Act 1",intl:false,matches:[
     {date:"2025-02-10",opp:"TYLOO",tag:"TYL",stage:"QF",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Abyss",b:13,o:9,r:"win"},{n:"Pearl",b:19,o:17,r:"win"}]},
-    {date:"2025-02-14",opp:"Nova Esports",tag:"NOVA",stage:"SF",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Split",b:8,o:13,r:"loss"},{n:"Pearl",b:4,o:13,r:"loss"}]},
+    {date:"2025-02-14",opp:"Nova Esports",tag:"NV",stage:"SF",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Split",b:8,o:13,r:"loss"},{n:"Pearl",b:4,o:13,r:"loss"}]},
     {date:"2025-02-15",opp:"JDG Esports",tag:"JDG",stage:"CF",fmt:"Bo5",bs:3,os:0,r:"win",maps:[{n:"Abyss",b:13,o:9,r:"win"},{n:"Pearl",b:13,o:3,r:"win"},{n:"Lotus",b:13,o:11,r:"win"}]}
   ]},
   {tournament:"VCT 2025: China Stage 1",intl:false,matches:[
@@ -1098,7 +1106,7 @@ const baselineData = {
     {date:"2025-12-18",opp:"Gen.G",tag:"GEN",stage:"D1",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Corrode",b:5,o:13,r:"loss"}]},
     {date:"2025-12-18",opp:"G2 Esports",tag:"G2",stage:"D1",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Corrode",b:3,o:13,r:"loss"}]},
     {date:"2025-12-19",opp:"Paper Rex",tag:"PRX",stage:"D2",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Split",b:9,o:13,r:"loss"}]},
-    {date:"2025-12-19",opp:"Nova Esports",tag:"NOVA",stage:"D2",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Pearl",b:11,o:13,r:"loss"}]}
+    {date:"2025-12-19",opp:"Nova Esports",tag:"NV",stage:"D2",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Pearl",b:11,o:13,r:"loss"}]}
   ]}
   ],
   "2026":[
@@ -1246,7 +1254,7 @@ const mapMvp=lm?.mvp||'';
 h+=`<div class="md"><div class="md-n">MAP ${i+1}</div><div class="md-m">${mp.n}</div><div class="md-bw"><div class="md-bar"><div class="md-bf ${w?'bw':'bl'}" style="width:${p}%"></div></div></div><div class="md-s"><span class="${w?'mws':'mls'}">${mp.b}</span><span class="msp">:</span><span class="${w?'mls':'mws'}">${mp.o}</span></div><div class="md-r ${w?'rw':'rl'}">${w?'W':'L'}</div>`;
 if(blgAgents.length||oppAgents.length||mapMvp){
   h+=`<div class="md-agents"><div class="ag-row"><span class="ag-side blg">BLG</span>${blgAgents.map(a=>agentImg(a,22)).join(' ')}</div>`;
-  h+=`<div class="ag-row"><span class="ag-side opp">${match.tag}</span>${oppAgents.map(a=>agentImg(a,22)).join(' ')}</div>`;
+  h+=`<div class="ag-row"><span class="ag-side opp">${DT(match.tag)}</span>${oppAgents.map(a=>agentImg(a,22)).join(' ')}</div>`;
   if(mapMvp)h+=`<div class="ag-mvp">⭐ ${mapMvp}</div>`;
   h+=`</div>`;
 }
@@ -1386,7 +1394,7 @@ const cnTeamNames={
   'Trace Esports':'TE','TE':'TE','EDward Gaming':'EDG','EDG':'EDG',
   'Dragon Ranger Gaming':'DRG','DRG':'DRG','Xi Lai Gaming':'XLG','XLG':'XLG',
   'TYLOO':'TYL','TYL':'TYL','JDG Esports':'JDG','JDG':'JDG',
-  'Wolves Esports':'WOL','WOL':'WOL','Nova Esports':'NOVA','NOVA':'NOVA',
+  'Wolves Esports':'WOL','WOL':'WOL','Nova Esports':'NV','NOVA':'NV','NV':'NV',
   'Titan Esports Club':'TEC','TEC':'TEC',
   'Paper Rex':'PRX','PRX':'PRX','G2 Esports':'G2','G2':'G2',
   'Gen.G':'GEN','GEN':'GEN','Sentinels':'SEN','SEN':'SEN',
@@ -1403,7 +1411,9 @@ const cnTeamNames={
 };
 function findBiliVod(opp, date){
   const tag=cnTeamNames[opp]||opp;
+  const dt=DT(tag);
   const keys=[`BLG vs ${opp} ${date}`,`${opp} vs BLG ${date}`,`BLG vs ${tag} ${date}`,`${tag} vs BLG ${date}`];
+  if(dt!==tag){keys.push(`BLG vs ${dt} ${date}`,`${dt} vs BLG ${date}`);}
   for(const k of keys){if(biliVodMap[k])return biliVodMap[k];}
   return null;
 }
@@ -1469,7 +1479,7 @@ async function toggleMapAgents(el,y,ti,mi,mapIdx){
   const oa=side===1?lm.t2agents:lm.t1agents;
   let h='';
   if(ba.length){h+=`<div class="ma-row"><span class="ma-side blg">BLG</span>${ba.map(a=>agentImg(a,24)).join('')}</div>`}
-  if(oa.length){h+=`<div class="ma-row"><span class="ma-side opp">${m.tag}</span>${oa.map(a=>agentImg(a,24)).join('')}</div>`}
+  if(oa.length){h+=`<div class="ma-row"><span class="ma-side opp">${DT(m.tag)}</span>${oa.map(a=>agentImg(a,24)).join('')}</div>`}
   const mapMvp=lm.mvp||'';
   const matchMvp=liq.mvp||'';
   if(mapMvp){h+=`<div class="ma-mvp">⭐ MAP MVP: ${mapMvp}</div>`}
@@ -1488,13 +1498,13 @@ sorted.forEach((t)=>{const ti=t._oi;h+=`<div class="tg"><div class="th"><div cla
 t.matches.forEach((m,mi)=>{const w=m.r==='win',id=`w_${y}_${ti}_${mi}`;
 const vodQ=`BLG vs ${m.opp} ${t.tournament} VALORANT ${m.date}`;
 const vodQEnc=encodeURIComponent(vodQ);
-const vodLabel=('BLG vs '+m.tag+' · '+m.date+' · '+m.stage).replace(/'/g,"\\'");
+const vodLabel=('BLG vs '+DT(m.tag)+' · '+m.date+' · '+m.stage).replace(/'/g,"\\'");
 const directBvid=findBiliVod(m.opp, m.date)||findBiliVod(m.tag, m.date)||'';
 const biliSearchUrl=getBiliSearchUrl(m.opp, m.date, t.tournament);
 h+=`<div class="mw" id="${id}"><div class="mc ${m.r}" onclick="toggleDetail('${id}',${y},${ti},${mi})">
 <div class="tl">${L('BLG')}<div><div class="tm blg">BLG</div><div class="tt">Bilibili Gaming</div></div></div>
 <div class="scc"><div class="sc"><span class="${w?'ws':'ls'}">${m.bs}</span><span class="sp">:</span><span class="${w?'ls':'ws'}">${m.os}</span></div><div class="sm">${m.fmt} · ${m.date}</div><span class="rb ${m.r}">${w?'WIN':'LOSS'}</span></div>
-<div class="tr"><div><div class="tm">${m.tag}</div><div class="tt">${m.opp}</div></div>${L(m.tag)}</div>
+<div class="tr"><div><div class="tm">${DT(m.tag)}</div><div class="tt">${m.opp}</div></div>${L(m.tag)}</div>
 ${m.maps&&m.maps.length?'<div class="mr">'+m.maps.map((p,mi2)=>`<span class="mp ${p.r==='win'?'mw2':'ml2'}" onclick="event.stopPropagation();toggleMapAgents(this,${y},${ti},${mi},${mi2})">${p.n} ${p.b}-${p.o}</span>`).join('')+'</div>':''}
 <div class="sr"><span class="sb">${m.stage}</span>${m._liq?'<span class="sb liq-tag" title="Liquipedia 자동 동기화">📡</span>':''}<span class="vod-btn" onclick="event.stopPropagation();openVod('${vodQEnc}','${vodLabel}','${directBvid}')" title="VOD 직접 보기">📺 VOD</span>${directBvid?`<a class="vod-btn" href="https://www.bilibili.com/video/${directBvid}" target="_blank" onclick="event.stopPropagation()" style="background:rgba(0,161,214,.1);border-color:rgba(0,161,214,.2);color:#00a1d6" title="Bilibili에서 보기">🅱 B站</a>`:`<a class="vod-btn" href="${biliSearchUrl}" target="_blank" onclick="event.stopPropagation()" style="background:rgba(0,161,214,.1);border-color:rgba(0,161,214,.2);color:#00a1d6" title="Bilibili 검색">🅱 B站</a>`}</div>
 <span class="ea">▼</span></div><div class="dp"><div class="di"></div></div></div>`});h+=`</div>`});h+=`</div>`});
@@ -1738,7 +1748,7 @@ function guessTag(name){
   if(!name)return'?';
   const map={'EDward Gaming':'EDG','FunPlus Phoenix':'FPX','Trace Esports':'TE','Dragon Ranger Gaming':'DRG',
     'Xi Lai Gaming':'XLG','Wolves Esports':'WOL','All Gamers':'AG','JDG Esports':'JDG','Titan Esports Club':'TEC',
-    'TYLOO':'TYL','Nova Esports':'NOVA','Paper Rex':'PRX','DRX':'DRX','Gen.G':'GEN','T1':'T1',
+    'TYLOO':'TYL','Nova Esports':'NV','Paper Rex':'PRX','DRX':'DRX','Gen.G':'GEN','T1':'T1',
     'Team Liquid':'TL','Fnatic':'FNC','Sentinels':'SEN','NRG Esports':'NRG','G2 Esports':'G2',
     'Karmine Corp':'KC','LOUD':'LOUD','LEVIATÁN':'LEV','Natus Vincere':'NAVI','Team Vitality':'VIT',
     'Cloud9':'C9','100 Thieves':'100T','Evil Geniuses':'EG','FURIA':'FURIA','MIBR':'MIBR',
@@ -1951,22 +1961,27 @@ function liqMatchLookup(liqMatches,match){
 // Global cache for per-match LP detail lookups
 const liqMatchDetailCache={};// "y_ti_mi" → liqMatch or null
 
-// ===== LP_AGENT_DATA 하드코딩 에이전트 데이터 자동 적용 =====
+// ===== LP/VLR 에이전트 데이터 하드코딩 자동 적용 =====
 function preloadLPAgents(){
-  if(typeof LP_AGENT_DATA==='undefined')return;
-  let cnt=0;
+  const hasLP=typeof LP_AGENT_DATA!=='undefined';
+  const hasVLR=typeof VLR_AGENT_DATA!=='undefined';
+  if(!hasLP&&!hasVLR)return;
+  let lpCnt=0,vlrCnt=0;
   for(const[yr,tgs]of Object.entries(allData)){
     tgs.forEach((tg,ti)=>{
       tg.matches.forEach((m,mi)=>{
         const cacheKey=`${yr}_${ti}_${mi}`;
         if(liqMatchDetailCache[cacheKey])return;
         const lpKey=m.date+'_'+m.tag;
-        const lp=LP_AGENT_DATA[lpKey];
-        if(!lp||!lp.d||!lp.d.length)return;
+        // LP 우선 (MVP 정보 보유)
+        const lp=hasLP?LP_AGENT_DATA[lpKey]:null;
+        const vlr=hasVLR?VLR_AGENT_DATA[lpKey]:null;
+        const src=lp||(vlr&&vlr.d&&vlr.d.length?vlr:null);
+        if(!src||!src.d||!src.d.length)return;
         liqMatchDetailCache[cacheKey]={
           blgSide:1,
-          mvp:lp.p||'',
-          maps:lp.d.map(md=>({
+          mvp:src.p||'',
+          maps:src.d.map(md=>({
             mapName:md.m,
             t1agents:md.b||[],
             t2agents:md.o||[],
@@ -1975,11 +1990,11 @@ function preloadLPAgents(){
             mvp:''
           }))
         };
-        cnt++;
+        if(lp)lpCnt++;else vlrCnt++;
       });
     });
   }
-  console.log(`✅ LP_AGENT_DATA: ${cnt}경기 에이전트 프리로드`);
+  console.log(`✅ 에이전트 프리로드: LP ${lpCnt}경기 + VLR ${vlrCnt}경기 = ${lpCnt+vlrCnt}경기`);
 }
 
 async function loadLiqDetail(y,ti,mi){
@@ -2243,7 +2258,7 @@ function renderStatsView(){
   h+=`<div class="stats-section"><div class="stats-section-title">🤝 상대 전적 (Head-to-Head)</div>`;
   h2hStats.forEach(s=>{
     const wr=s.total?Math.round(s.w/s.total*100):0;
-    h+=`<div class="h2h-row">${L(s.tag,'sm')}<div class="h2h-team"><span class="tm">${s.tag}</span></div><div class="h2h-record"><span style="color:var(--win)">${s.w}</span><span style="color:var(--dimmer)">-</span><span style="color:var(--loss)">${s.l}</span></div><div class="h2h-bar"><div class="hw" style="width:${wr}%"></div><div class="hl" style="width:${100-wr}%"></div></div><span style="font-size:11px;color:var(--dim);min-width:35px;text-align:right">${wr}%</span></div>`;
+    h+=`<div class="h2h-row">${L(s.tag,'sm')}<div class="h2h-team"><span class="tm">${DT(s.tag)}</span></div><div class="h2h-record"><span style="color:var(--win)">${s.w}</span><span style="color:var(--dimmer)">-</span><span style="color:var(--loss)">${s.l}</span></div><div class="h2h-bar"><div class="hw" style="width:${wr}%"></div><div class="hl" style="width:${100-wr}%"></div></div><span style="font-size:11px;color:var(--dim);min-width:35px;text-align:right">${wr}%</span></div>`;
   });
   h+=`</div>`;
 
@@ -3124,7 +3139,7 @@ setTimeout(fetchStandings,4000);setInterval(fetchStandings,10*60*1000);
 // Upcoming schedule: fetch at load + every 10min
 setTimeout(fetchUpcomingSchedule,6000);setInterval(fetchUpcomingSchedule,10*60*1000);
 
-setTimeout(liqAutoSync,12000);// LP auto-sync: new matches + agent cache
+setTimeout(async()=>{await liqAutoSync();setTimeout(fetchLiquipediaLogosDeferred,5000)},12000);// LP auto-sync first, then logos
 </script>
 
 <!-- VOD MODAL -->
