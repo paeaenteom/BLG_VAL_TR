@@ -966,10 +966,10 @@ const baselineData = {
   ]},
   {tournament:"China Evolution Series: Act 2",intl:false,matches:[
     {date:"2023-10-05",opp:"Xi Lai Gaming",tag:"XLG",stage:"OQ-C R2",fmt:"Bo1",bs:1,os:0,r:"win",maps:[{n:"TBD",b:13,o:9,r:"win"}]},
-    {date:"2023-10-06",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"OQ URo16",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2023-10-07",opp:"All Gamers",tag:"AG",stage:"OQ LR1",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2023-10-08",opp:"Top Esports",tag:"TES",stage:"OQ LR2",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2023-10-10",opp:"Ninjas in Pyjamas",tag:"NIP",stage:"Opening (A)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
+    {date:"2023-10-06",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"OQ URo16",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Breeze",b:11,o:13,r:"loss"},{n:"Bind",b:9,o:13,r:"loss"}]},
+    {date:"2023-10-07",opp:"All Gamers",tag:"AG",stage:"OQ LR1",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Ascent",b:13,o:4,r:"win"},{n:"Lotus",b:13,o:1,r:"win"}]},
+    {date:"2023-10-08",opp:"Top Esports",tag:"TES",stage:"OQ LR2",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Split",b:13,o:6,r:"win"},{n:"Lotus",b:13,o:9,r:"win"}]},
+    {date:"2023-10-10",opp:"Ninjas in Pyjamas",tag:"NIP",stage:"Opening (A)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Ascent",b:13,o:8,r:"win"},{n:"Bind",b:13,o:7,r:"win"}]},
     {date:"2023-10-12",opp:"Royal Never Give Up",tag:"RNG",stage:"Winner's (A)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Split",b:13,o:5,r:"win"},{n:"Lotus",b:13,o:11,r:"win"}]},
     {date:"2023-10-20",opp:"Trace Esports",tag:"TE",stage:"Opening (A)",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Lotus",b:13,o:6,r:"win"},{n:"Bind",b:7,o:13,r:"loss"},{n:"Breeze",b:13,o:4,r:"win"}]},
     {date:"2023-10-22",opp:"EDward Gaming",tag:"EDG",stage:"Winner's (A)",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Breeze",b:12,o:14,r:"loss"},{n:"Split",b:5,o:13,r:"loss"}]},
@@ -977,7 +977,7 @@ const baselineData = {
   ]},
   {tournament:"China Evolution Series: Act 3",intl:false,matches:[
     {date:"2023-11-02",opp:"VLG Esports",tag:"VLG",stage:"OQ-A SF",fmt:"Bo1",bs:1,os:0,r:"win",maps:[{n:"Lotus",b:13,o:2,r:"win"}]},
-    {date:"2023-11-03",opp:"Titan Esports Club",tag:"TEC",stage:"OQ-A GF",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[]},
+    {date:"2023-11-03",opp:"Titan Esports Club",tag:"TEC",stage:"OQ-A GF",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Haven",b:9,o:13,r:"loss"}]},
     {date:"2023-11-05",opp:"Night Wings Gaming",tag:"NWG",stage:"Opening (B)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Ascent",b:13,o:10,r:"win"},{n:"Haven",b:13,o:7,r:"win"}]},
     {date:"2023-11-07",opp:"Royal Never Give Up",tag:"RNG",stage:"Winner's (B)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Haven",b:14,o:12,r:"win"},{n:"Ascent",b:13,o:4,r:"win"}]},
     {date:"2023-11-16",opp:"LGD Gaming",tag:"LGD",stage:"UR1",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Haven",b:13,o:5,r:"win"},{n:"Lotus",b:13,o:0,r:"win"}]},
@@ -1404,9 +1404,14 @@ const cnTeamNames={
 function findBiliVod(opp, date){
   const tag=cnTeamNames[opp]||opp;
   const dt=DT(tag);
-  const keys=[`BLG vs ${opp} ${date}`,`${opp} vs BLG ${date}`,`BLG vs ${tag} ${date}`,`${tag} vs BLG ${date}`];
-  if(dt!==tag){keys.push(`BLG vs ${dt} ${date}`,`${dt} vs BLG ${date}`);}
-  for(const k of keys){if(biliVodMap[k])return biliVodMap[k];}
+  // Try exact date + date±1 (VLR/bilibili timezone offset)
+  const dates=[date];
+  try{const d=new Date(date+'T12:00:00Z');const d1=new Date(d);d1.setDate(d1.getDate()+1);dates.push(d1.toISOString().substring(0,10));const d2=new Date(d);d2.setDate(d2.getDate()-1);dates.push(d2.toISOString().substring(0,10));}catch(e){}
+  for(const dd of dates){
+    const keys=[`BLG vs ${opp} ${dd}`,`${opp} vs BLG ${dd}`,`BLG vs ${tag} ${dd}`,`${tag} vs BLG ${dd}`];
+    if(dt!==tag){keys.push(`BLG vs ${dt} ${dd}`,`${dt} vs BLG ${dd}`);}
+    for(const k of keys){if(biliVodMap[k])return biliVodMap[k];}
+  }
   return null;
 }
 function getBiliSearchUrl(opp, date, tournament){
@@ -1757,7 +1762,14 @@ async function checkNewBiliVods(){
   try{
     const d=await proxyFetchJSON('https://api.bilibili.com/x/space/arc/search?mid=2071691173&ps=10&tid=0&pn=1&keyword=BLG&order=pubdate');
     if(d&&d.data&&d.data.list&&d.data.list.vlist){
-      videos=d.data.list.vlist.map(v=>({bvid:v.bvid,title:v.title,date:new Date(v.created*1000).toISOString().substring(0,10)})).filter(v=>v.title.includes('BLG')||v.title.includes('哔哩哔哩'));
+      videos=d.data.list.vlist.map(v=>({bvid:v.bvid,title:v.title,date:new Date(v.created*1000).toISOString().substring(0,10)})).filter(v=>{
+        const t=v.title||'';
+        // Must contain BLG or 哔哩哔哩
+        if(!t.includes('BLG')&&!t.includes('哔哩哔哩'))return false;
+        // Exclude LoL content
+        if(t.includes('英雄联盟')||t.includes('LOL')||t.includes('lol')||t.includes('LPL')||t.includes('联赛'))return false;
+        return true;
+      });
     }
   }catch(e){}
   if(!videos.length)return;
@@ -3366,19 +3378,23 @@ function switchBiliPart(bvid, page, btn){
 
 async function searchVod(query){
   try{
-    // Search Bilibili directly for VODs
-    const kw=encodeURIComponent(query.replace(/bilibili gaming/i,'BLG').replace(/VALORANT/i,'无畏契约'));
+    // Search Bilibili directly for VODs - include VALORANT keyword, filter LoL
+    const kw=encodeURIComponent(query.replace(/bilibili gaming/i,'BLG').replace(/VALORANT/i,'无畏契约')+' 无畏契约');
     const d=await proxyFetchJSON(`https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword=${kw}&order=totalrank&duration=4`);
     let result={videoId:null,videoTitle:null,bvid:null,biliTitle:null};
     if(d&&d.data&&d.data.result){
-      const vid=d.data.result.find(v=>v.bvid&&(v.title.includes('BLG')||v.title.includes('哔哩哔哩')));
+      const vid=d.data.result.find(v=>{
+        const t=(v.title||'').replace(/<[^>]+>/g,'');
+        if(t.includes('英雄联盟')||t.includes('LOL')||t.includes('LPL')||t.includes('联赛'))return false;
+        return v.bvid&&(t.includes('BLG')||t.includes('哔哩哔哩'));
+      });
       if(vid){result.bvid=vid.bvid;result.biliTitle=vid.title.replace(/<[^>]+>/g,'');}
     }
     // Also try official channel search
     if(!result.bvid){
-      const d2=await proxyFetchJSON(`https://api.bilibili.com/x/space/arc/search?mid=2071691173&ps=5&keyword=${encodeURIComponent(query.replace(/bilibili gaming/i,'BLG'))}&order=pubdate`);
+      const d2=await proxyFetchJSON(`https://api.bilibili.com/x/space/arc/search?mid=2071691173&ps=5&keyword=${encodeURIComponent(query.replace(/bilibili gaming/i,'BLG')+' 无畏契约')}&order=pubdate`);
       if(d2&&d2.data&&d2.data.list&&d2.data.list.vlist){
-        const vid=d2.data.list.vlist[0];
+        const vid=d2.data.list.vlist.find(v=>{const t=v.title||'';return !t.includes('英雄联盟')&&!t.includes('LOL')&&!t.includes('LPL');});
         if(vid){result.bvid=vid.bvid;result.biliTitle=vid.title;}
       }
     }
