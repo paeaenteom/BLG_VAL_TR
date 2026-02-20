@@ -136,7 +136,6 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 .ma-row{display:flex;align-items:center;gap:5px;padding:3px 0;white-space:nowrap}.ma-side{font-size:8px;font-weight:700;font-family:'Orbitron',sans-serif;padding:2px 5px;border-radius:3px;min-width:28px;text-align:center}
 .ma-side.blg{background:rgba(0,229,160,.12);color:#00e5a0}.ma-side.opp{background:rgba(255,77,106,.12);color:#ff4d6a}
 .ma-row img{width:24px;height:24px;border-radius:50%;transition:transform .15s}.ma-row img:hover{transform:scale(1.5);z-index:2}
-.ma-mvp{font-size:10px;color:#ffb84d;padding-top:4px;margin-top:4px;border-top:1px solid var(--s3);text-align:center;font-weight:600}
 .ma-loading{font-size:10px;color:var(--dim);white-space:nowrap;display:flex;align-items:center;gap:4px}
 .ma-loading .dot-load{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink .8s infinite}
 .ma-err{font-size:10px;color:var(--dimmer);text-align:center}
@@ -205,9 +204,6 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 .ag-row{display:flex;align-items:center;gap:4px;flex:1}.ag-side{font-size:9px;font-weight:700;font-family:'Orbitron',sans-serif;padding:2px 6px;border-radius:3px;min-width:32px;text-align:center}
 .ag-side.blg{background:rgba(0,229,160,.1);color:#00e5a0}.ag-side.opp{background:rgba(255,77,106,.1);color:#ff4d6a}
 .ag-row img{transition:transform .15s}.ag-row img:hover{transform:scale(1.4);z-index:2}.ag-name{font-size:9px;padding:2px 4px;background:var(--s3);border-radius:3px;color:var(--dim)}
-.ag-mvp{font-size:10px;color:#ffb84d;font-weight:600;display:flex;align-items:center;padding-left:4px;white-space:nowrap}
-.liq-mvp{display:flex;align-items:center;gap:8px;padding:8px 12px;margin-top:8px;background:linear-gradient(135deg,rgba(255,184,77,.06),rgba(255,184,77,.02));border:1px solid rgba(255,184,77,.15);border-radius:8px}
-.mvp-label{font-size:10px;font-weight:700;color:#ffb84d;font-family:'JetBrains Mono',monospace}.mvp-name{font-size:13px;font-weight:700;color:#fff}
 .liq-veto{padding:8px 12px;margin-top:6px;background:var(--s2);border:1px solid var(--s3);border-radius:8px}
 .veto-label{font-size:9px;font-weight:700;color:var(--dim);font-family:'Orbitron',sans-serif;letter-spacing:1px;display:block;margin-bottom:4px}
 .veto-flow{display:flex;gap:4px;flex-wrap:wrap}.veto-step{display:flex;align-items:center;gap:3px;font-size:10px;padding:3px 6px;background:var(--s3);border-radius:4px}
@@ -445,7 +441,7 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
   <h1 style="font-size:clamp(16px,2.5vw,24px);margin-top:4px;color:var(--dim)">실시간 대전 기록 & 결과</h1>
   <p class="hero-sub"><strong>VCT China</strong> · whz · Knight · nephh · rushia · bud</p>
 </div>
-<div class="live-bar"><span class="live-dot loading" id="liveDot"></span><span class="live-text" id="liveText">데이터 로드 중...</span><span class="sync-badge" id="syncBadge"></span><button class="refresh-btn" id="refreshBtn" onclick="fetchLiveData()" disabled><span id="refreshIcon">↻</span> 새로고침</button><button class="notif-btn" id="notifBtn" onclick="toggleNotif()" title="알림 설정"><span id="notifIcon">🔔</span></button></div>
+<div class="live-bar"><span class="live-dot loading" id="liveDot"></span><span class="live-text" id="liveText">데이터 로드 중...</span><span class="sync-badge" id="syncBadge"></span><button class="refresh-btn" id="refreshBtn" onclick="fetchLiveData()" disabled><span id="refreshIcon">↻</span> 새로고침</button><button class="refresh-btn" id="vlrSyncBtn" onclick="vlrSync()" title="VLR.gg에서 최신 에이전트 데이터 동기화">📡 에이전트 동기화</button><button class="notif-btn" id="notifBtn" onclick="toggleNotif()" title="알림 설정"><span id="notifIcon">🔔</span></button></div>
 <div class="stats-bar" id="statsBar"></div>
 
 <!-- PAGE NAV -->
@@ -490,7 +486,6 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 </div>
 <div class="footer">실시간 데이터 · <a href="https://vlr.gg/team/12498/bilibili-gaming" target="_blank">VLR.gg</a> · <a href="https://liquipedia.net/valorant/Bilibili_Gaming" target="_blank">Liquipedia</a> · <a href="https://www.youtube.com/@VALORANTEsportsCN" target="_blank">YouTube</a> · <a href="https://space.bilibili.com/2071691173" target="_blank">B站 (无畏契约赛事)</a></div>
 
-<script src="lp-agents.js"></script>
 <script src="vlr-agents.js"></script>
 <script>
 
@@ -1233,11 +1228,10 @@ let btnKey='';
 for(const y of Object.keys(allData)){const ts=allData[y];for(let ti=0;ti<ts.length;ti++){const t=ts[ti];for(let mi=0;mi<t.matches.length;mi++){if(t.matches[mi]===m){btnKey=`${y}_${ti}_${mi}`;break}}}}
 
 let h=mapHTMLEx(m.maps,liq,m);
-if(liq?.mvp)h+=`<div class="liq-mvp"><span class="mvp-label">⭐ 시리즈 MVP</span><span class="mvp-name">${liq.mvp}</span></div>`;
 if(liq?.veto?.length)h+=`<div class="liq-veto"><span class="veto-label">MAP VETO</span><div class="veto-flow">${liq.veto.map(v=>`<span class="veto-step"><span class="vt1">${v.t1||''}</span><span class="vact">${v.action}</span><span class="vt2">${v.t2||''}</span></span>`).join('')}</div></div>`;
 h+=`<div class="dn"><div class="dnt">경기 분석</div><div class="dtx">${narr}</div></div>`;
 h+=`<div class="dmeta"><span class="mt">${tn}</span><span class="mt">${m.fmt}</span><span class="mt">${m.stage}</span><span class="mt ${m.r==='win'?'mtwn':'mtls'}">${m.r==='win'?'✓ 승리':'✗ 패배'}</span>${il?'<span class="mt mtil">🌍 국제 대회</span>':''}<span class="mt">${m.date}</span>`;
-if(!liq&&LP_TOURN_MAP[tn]){h+=`<button class="mt liq-load-btn" id="liq-btn-${btnKey}" onclick="event.stopPropagation();loadLiqDetail(${btnKey.replace(/_/g,',')})">📡 에이전트·MVP 불러오기</button>`}
+if(!liq&&LP_TOURN_MAP[tn]){h+=`<button class="mt liq-load-btn" id="liq-btn-${btnKey}" onclick="event.stopPropagation();loadLiqDetail(${btnKey.replace(/_/g,',')})">📡 에이전트 불러오기</button>`}
 else if(liq){h+=`<span class="mt" style="background:rgba(0,229,160,.1);border-color:rgba(0,229,160,.2);color:#00e5a0">📡 Liquipedia ✓</span>`}
 h+=`</div>`;return h}
 
@@ -1250,12 +1244,10 @@ let lm=null;
 if(liq?.maps){lm=liq.maps[i]||(liq.maps.find(g=>g.mapName&&g.mapName.includes(mp.n)))}
 const blgAgents=lm?(blgSide===1?lm.t1agents:lm.t2agents):[];
 const oppAgents=lm?(blgSide===1?lm.t2agents:lm.t1agents):[];
-const mapMvp=lm?.mvp||'';
 h+=`<div class="md"><div class="md-n">MAP ${i+1}</div><div class="md-m">${mp.n}</div><div class="md-bw"><div class="md-bar"><div class="md-bf ${w?'bw':'bl'}" style="width:${p}%"></div></div></div><div class="md-s"><span class="${w?'mws':'mls'}">${mp.b}</span><span class="msp">:</span><span class="${w?'mls':'mws'}">${mp.o}</span></div><div class="md-r ${w?'rw':'rl'}">${w?'W':'L'}</div>`;
-if(blgAgents.length||oppAgents.length||mapMvp){
+if(blgAgents.length||oppAgents.length){
   h+=`<div class="md-agents"><div class="ag-row"><span class="ag-side blg">BLG</span>${blgAgents.map(a=>agentImg(a,22)).join(' ')}</div>`;
   h+=`<div class="ag-row"><span class="ag-side opp">${DT(match.tag)}</span>${oppAgents.map(a=>agentImg(a,22)).join(' ')}</div>`;
-  if(mapMvp)h+=`<div class="ag-mvp">⭐ ${mapMvp}</div>`;
   h+=`</div>`;
 }
 h+=`</div>`});return h+'</div>'}
@@ -1480,10 +1472,6 @@ async function toggleMapAgents(el,y,ti,mi,mapIdx){
   let h='';
   if(ba.length){h+=`<div class="ma-row"><span class="ma-side blg">BLG</span>${ba.map(a=>agentImg(a,24)).join('')}</div>`}
   if(oa.length){h+=`<div class="ma-row"><span class="ma-side opp">${DT(m.tag)}</span>${oa.map(a=>agentImg(a,24)).join('')}</div>`}
-  const mapMvp=lm.mvp||'';
-  const matchMvp=liq.mvp||'';
-  if(mapMvp){h+=`<div class="ma-mvp">⭐ MAP MVP: ${mapMvp}</div>`}
-  else if(matchMvp){h+=`<div class="ma-mvp">⭐ ${matchMvp}</div>`}
   pop.innerHTML=h||'<div class="ma-err">에이전트 없음</div>';
 }
 
@@ -1815,7 +1803,7 @@ function fetchTeamLogo(tag){
   LOGOS[tag]=logoCache[tag];
 }
 
-// ===== LIQUIPEDIA MATCH DETAIL (에이전트·MVP·밴픽) =====
+// ===== LIQUIPEDIA MATCH DETAIL (에이전트·밴픽) =====
 const LP_TOURN_MAP={
 'FGC 2023: Act 1 Qualifier':'FGC/2023/Act_1/China',
 'FGC 2023: Act 2 Qualifier':'FGC/2023/Act_2/China',
@@ -1848,7 +1836,7 @@ const LP_TOURN_MAP={
 'VCT 2026: China Kickoff':'VCT/2026/China_League/Kickoff',
 };
 
-const liqDetailCache={};// pagePath → [{team1,team2,score,maps:[{mapName,score1,score2,t1agents,t2agents}],mvp,veto}]
+const liqDetailCache={};// pagePath → [{team1,team2,score,maps:[{mapName,score1,score2,t1agents,t2agents}],veto}]
 
 const AGENT_ICONS_URL='https://valorant-api.com/v1/agents?isPlayableCharacter=true';
 let agentIconMap=null;
@@ -1893,7 +1881,7 @@ function liqParsePopups(doc){
   const MAPS=['Ascent','Bind','Breeze','Fracture','Haven','Icebox','Lotus','Pearl','Split','Sunset','Abyss','Corrode'];
   const AGENTS=['Jett','Raze','Phoenix','Reyna','Yoru','Neon','Iso','Waylay','Sova','Breach','Skye','KAY/O','Fade','Gekko','Tejo','Killjoy','Cypher','Sage','Chamber','Deadlock','Vyse','Brimstone','Omen','Viper','Astra','Harbor','Clove'];
   doc.querySelectorAll('.brkts-popup').forEach(popup=>{
-    const m={team1:'',team2:'',score:'',maps:[],mvp:'',veto:[],_hl:[]};
+    const m={team1:'',team2:'',score:'',maps:[],veto:[],_hl:[]};
     // Teams
     const opps=popup.querySelectorAll('.match-info-header-opponent');
     if(opps.length>=2){m.team1=opps[0].textContent.replace(/\s+/g,' ').trim();m.team2=opps[1].textContent.replace(/\s+/g,' ').trim()}
@@ -1906,7 +1894,7 @@ function liqParsePopups(doc){
     if(de)m.date=de.textContent?.trim()||'';
     // Maps
     popup.querySelectorAll('.brkts-popup-body-game').forEach(row=>{
-      const g={mapName:'',score1:0,score2:0,t1agents:[],t2agents:[],mvp:''};
+      const g={mapName:'',score1:0,score2:0,t1agents:[],t2agents:[]};
       row.querySelectorAll('a').forEach(a=>{const t=(a.getAttribute('title')||a.textContent||'').trim();if(MAPS.some(mn=>t.includes(mn)))g.mapName=t});
       if(!g.mapName){const txt=row.textContent;MAPS.forEach(mn=>{if(txt.includes(mn))g.mapName=mn})}
       const nums=[];row.querySelectorAll('td,.brkts-popup-spaced').forEach(el=>{const n=parseInt(el.textContent?.trim());if(!isNaN(n)&&n>=0&&n<=30)nums.push(n)});
@@ -1917,18 +1905,8 @@ function liqParsePopups(doc){
         for(const a of AGENTS){if(c.includes(a.toLowerCase())){agents.push(a);break}}
       });
       g.t1agents=agents.slice(0,5);g.t2agents=agents.slice(5,10);
-      // Per-map MVP: look for MVP text within this game row
-      row.querySelectorAll('*').forEach(el=>{
-        const t=el.textContent||'';
-        if(t.includes('MVP')&&!t.includes('Map Veto')&&el.children.length<3){
-          const mm=t.match(/MVP[:\s]*([A-Za-z0-9_]+)/i);
-          if(mm&&!g.mvp)g.mvp=mm[1].trim();
-        }
-      });
       if(g.mapName||agents.length>0||g.score1>0)m.maps.push(g);
     });
-    // Match-level MVP (fallback, also scan full popup)
-    popup.querySelectorAll('*').forEach(el=>{const t=el.textContent||'';if(t.includes('MVP')&&!t.includes('Map Veto')&&el.children.length<5){const mm=t.match(/MVP[:\s]*([A-Za-z0-9_]+)/i);if(mm&&!m.mvp)m.mvp=mm[1].trim()}});
     // Veto
     const vt=popup.querySelector('.brkts-popup-mapveto table,table.wikitable-striped');
     if(vt)vt.querySelectorAll('tr').forEach(r=>{const c=r.querySelectorAll('td,th');if(c.length>=3){const a=c[1]?.textContent?.trim();if(/ban|pick|decider/i.test(a))m.veto.push({t1:c[0]?.textContent?.trim(),action:a,t2:c[2]?.textContent?.trim()})}});
@@ -1961,40 +1939,118 @@ function liqMatchLookup(liqMatches,match){
 // Global cache for per-match LP detail lookups
 const liqMatchDetailCache={};// "y_ti_mi" → liqMatch or null
 
-// ===== LP/VLR 에이전트 데이터 하드코딩 자동 적용 =====
-function preloadLPAgents(){
-  const hasLP=typeof LP_AGENT_DATA!=='undefined';
-  const hasVLR=typeof VLR_AGENT_DATA!=='undefined';
-  if(!hasLP&&!hasVLR)return;
-  let lpCnt=0,vlrCnt=0;
+// ===== VLR_AGENT_DATA 에이전트 데이터 자동 적용 =====
+function preloadAgents(){
+  if(typeof VLR_AGENT_DATA==='undefined')return;
+  let cnt=0;
   for(const[yr,tgs]of Object.entries(allData)){
     tgs.forEach((tg,ti)=>{
       tg.matches.forEach((m,mi)=>{
         const cacheKey=`${yr}_${ti}_${mi}`;
         if(liqMatchDetailCache[cacheKey])return;
-        const lpKey=m.date+'_'+m.tag;
-        // LP 우선 (MVP 정보 보유)
-        const lp=hasLP?LP_AGENT_DATA[lpKey]:null;
-        const vlr=hasVLR?VLR_AGENT_DATA[lpKey]:null;
-        const src=lp||(vlr&&vlr.d&&vlr.d.length?vlr:null);
+        const key=m.date+'_'+m.tag;
+        const src=VLR_AGENT_DATA[key];
         if(!src||!src.d||!src.d.length)return;
         liqMatchDetailCache[cacheKey]={
           blgSide:1,
-          mvp:src.p||'',
           maps:src.d.map(md=>({
             mapName:md.m,
             t1agents:md.b||[],
             t2agents:md.o||[],
             score1:md.bs||0,
-            score2:md.os||0,
-            mvp:''
+            score2:md.os||0
           }))
         };
-        if(lp)lpCnt++;else vlrCnt++;
+        cnt++;
       });
     });
   }
-  console.log(`✅ 에이전트 프리로드: LP ${lpCnt}경기 + VLR ${vlrCnt}경기 = ${lpCnt+vlrCnt}경기`);
+  console.log(`✅ 에이전트 프리로드: ${cnt}경기`);
+}
+
+// ===== VLR.gg 자동 에이전트 동기화 =====
+async function vlrSync(){
+  const btn=document.getElementById('vlrSyncBtn');
+  if(!btn)return;
+  btn.disabled=true;btn.innerHTML='📡 동기화 중...';
+  try{
+    const resp=await fetch('/api/vlr-sync?limit=15');
+    if(!resp.ok)throw new Error(`HTTP ${resp.status}`);
+    const json=await resp.json();
+    if(!json.ok||!json.data)throw new Error(json.error||'응답 오류');
+    
+    // Merge with existing cache
+    let newCnt=0;
+    const vlrNew=json.data;
+    // Save to localStorage for persistence
+    const stored=JSON.parse(localStorage.getItem('vlr_sync_data')||'{}');
+    Object.assign(stored,vlrNew);
+    localStorage.setItem('vlr_sync_data',JSON.stringify(stored));
+    localStorage.setItem('vlr_sync_ts',json.ts);
+    
+    // Apply to match detail cache
+    for(const[yr,tgs]of Object.entries(allData)){
+      tgs.forEach((tg,ti)=>{
+        tg.matches.forEach((m,mi)=>{
+          const cacheKey=`${yr}_${ti}_${mi}`;
+          if(liqMatchDetailCache[cacheKey])return;
+          const key=m.date+'_'+m.tag;
+          const src=stored[key]||vlrNew[key];
+          if(!src||!src.d||!src.d.length)return;
+          liqMatchDetailCache[cacheKey]={
+            blgSide:1,
+            maps:src.d.map(md=>({
+              mapName:md.m,
+              t1agents:md.b||[],
+              t2agents:md.o||[],
+              score1:md.bs||0,
+              score2:md.os||0
+            }))
+          };
+          newCnt++;
+        });
+      });
+    }
+    
+    btn.innerHTML=`✅ ${newCnt}경기 동기화`;
+    if(newCnt>0)renderAll();
+    console.log(`📡 VLR 동기화: ${json.count}개 수신, ${newCnt}경기 새로 적용`);
+    setTimeout(()=>{btn.innerHTML='📡 에이전트 동기화';btn.disabled=false},3000);
+  }catch(e){
+    console.error('VLR 동기화 실패:',e);
+    btn.innerHTML='❌ 동기화 실패';
+    setTimeout(()=>{btn.innerHTML='📡 에이전트 동기화';btn.disabled=false},3000);
+  }
+}
+
+// localStorage에 저장된 VLR 동기화 데이터 복원
+function restoreVlrSync(){
+  const stored=JSON.parse(localStorage.getItem('vlr_sync_data')||'{}');
+  if(!Object.keys(stored).length)return;
+  let cnt=0;
+  for(const[yr,tgs]of Object.entries(allData)){
+    tgs.forEach((tg,ti)=>{
+      tg.matches.forEach((m,mi)=>{
+        const cacheKey=`${yr}_${ti}_${mi}`;
+        if(liqMatchDetailCache[cacheKey])return;
+        const key=m.date+'_'+m.tag;
+        const src=stored[key];
+        if(!src||!src.d||!src.d.length)return;
+        liqMatchDetailCache[cacheKey]={
+          blgSide:1,
+          maps:src.d.map(md=>({
+            mapName:md.m,
+            t1agents:md.b||[],
+            t2agents:md.o||[],
+            score1:md.bs||0,
+            score2:md.os||0
+          }))
+        };
+        cnt++;
+      });
+    });
+  }
+  if(cnt)console.log(`📡 VLR 캐시 복원: ${cnt}경기`);
 }
 
 async function loadLiqDetail(y,ti,mi){
@@ -3118,10 +3174,11 @@ try{
     });
   }
 }catch(e){}
-dot.className='live-dot';txt.textContent=`마지막 업데이트: ${new Date().toLocaleTimeString('ko-KR')} · ${syncCount>0?syncCount+'개 동기화':'기존 데이터 사용'}`;preloadLPAgents();renderAll();
+dot.className='live-dot';txt.textContent=`마지막 업데이트: ${new Date().toLocaleTimeString('ko-KR')} · ${syncCount>0?syncCount+'개 동기화':'기존 데이터 사용'}`;preloadAgents();restoreVlrSync();renderAll();
 btn.disabled=false;ico.innerHTML='↻'}
 
-preloadLPAgents();
+preloadAgents();
+restoreVlrSync();
 renderAll();
 fetchLiveData().then(()=>setInterval(fetchLiveData,5*60*1000));
 fetchSkinData();
