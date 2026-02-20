@@ -24,12 +24,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const headers = { 'User-Agent': 'BLG-Tracker/1.0 (blg-val.vercel.app)' };
+    const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' };
     if (parsed.hostname.includes('valorantesports.com')) {
       headers['x-api-key'] = '0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z';
     }
     if (parsed.hostname.includes('liquipedia.net')) {
       headers['Accept-Encoding'] = 'gzip';
+    }
+    if (parsed.hostname.includes('bilibili.com')) {
+      headers['Referer'] = 'https://www.bilibili.com';
+      headers['Origin'] = 'https://www.bilibili.com';
     }
 
     const resp = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
