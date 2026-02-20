@@ -559,9 +559,9 @@ async function getRiotSchedule(forceRefresh=false){
     // Cache official logos from API
     riotScheduleCache.forEach(ev=>{
       (ev.match?.teams||[]).forEach(t=>{
-        if(t.code && t.image && !LOGOS[t.code]){
-          LOGOS[t.code]=t.image;
-          logoCache[t.code]=t.image;
+        if(t.code && t.image){
+          const aliases=[t.code,{KRU:'KRÜ',Wolves:'WOL',TITAN:'TEC'}[t.code]].filter(Boolean);
+          aliases.forEach(c=>{if(!LOGOS[c]||LOGOS[c].startsWith('data:')){LOGOS[c]=t.image;logoCache[c]=t.image}});
         }
       });
     });
@@ -573,25 +573,45 @@ function isBLGTeam(team){return team.code==='BLG'||team.name?.includes('Bilibili
 
 // Fetch ALL VCT team logos from Riot Esports API (getStandings has all teams with images)
 async function fetchRiotTeamLogos(){
+  // Riot API code → our code mapping (handles special chars, aliases)
+  const CODE_ALIAS={KRU:'KRÜ',KRUE:'KRÜ',Wolves:'WOL',TITAN:'TEC'};
+  function applyLogo(code,image){
+    const targets=[code,CODE_ALIAS[code]].filter(Boolean);
+    targets.forEach(c=>{
+      if(!LOGOS[c]||LOGOS[c].startsWith('data:')){
+        LOGOS[c]=image;
+        logoCache[c]=image;
+        document.querySelectorAll(`img.tlogo[alt="${c}"]`).forEach(el=>{if(el.src.startsWith('data:'))el.src=image});
+        document.querySelectorAll('span.tlogo-ph').forEach(el=>{
+          if(el.textContent===(c[0]||''))el.outerHTML=`<img src="${image}" class="tlogo" alt="${c}" onerror="this.outerHTML='<span class=\\'tlogo-ph\\'>${c[0]}</span>'">`});
+      }
+    });
+  }
   try{
-    // Try getStandings for all VCT leagues
+    // VCT league IDs
     const leagueIds=['111691194187846945','111688766498498302','111688766498498301','111688766498498300']; // CN, Americas, EMEA, Pacific
+    // Method 1: getSchedule (most reliable - has match team data)
     for(const lid of leagueIds){
-      const d=await riotEsportsFetch('getStandings',{tournamentId:lid});
+      const d=await riotEsportsFetch('getSchedule',{leagueId:lid});
+      if(d?.data?.schedule?.events){
+        d.data.schedule.events.forEach(ev=>{
+          (ev.match?.teams||[]).forEach(t=>{
+            if(t.code&&t.image)applyLogo(t.code,t.image);
+          });
+        });
+      }
+      await new Promise(r=>setTimeout(r,500));
+    }
+    // Method 2: getStandings (has all teams in league)
+    for(const lid of leagueIds){
+      const d=await riotEsportsFetch('getStandings',{leagueId:lid});
       if(d?.data?.standings){
-        d.data.standings.forEach(s=>{
+        (Array.isArray(d.data.standings)?d.data.standings:[d.data.standings]).forEach(s=>{
           (s.stages||[]).forEach(st=>{
             (st.sections||[]).forEach(sec=>{
               (sec.rankings||[]).forEach(r=>{
                 (r.teams||[]).forEach(t=>{
-                  if(t.code&&t.image&&(!LOGOS[t.code]||LOGOS[t.code].startsWith('data:'))){
-                    LOGOS[t.code]=t.image;
-                    logoCache[t.code]=t.image;
-                    // Update DOM
-                    document.querySelectorAll(`img.tlogo[alt="${t.code}"]`).forEach(el=>{if(el.src.startsWith('data:'))el.src=t.image});
-                    document.querySelectorAll('span.tlogo-ph').forEach(el=>{
-                      if(el.textContent===t.code[0])el.outerHTML=`<img src="${t.image}" class="tlogo" alt="${t.code}" onerror="this.outerHTML='<span class=\\'tlogo-ph\\'>${t.code[0]}</span>'">`});
-                  }
+                  if(t.code&&t.image)applyLogo(t.code,t.image);
                 });
               });
             });
@@ -600,26 +620,82 @@ async function fetchRiotTeamLogos(){
       }
       await new Promise(r=>setTimeout(r,500));
     }
-    // Also try getSchedule for all leagues (catches teams from match data)
-    for(const lid of leagueIds){
-      const d=await riotEsportsFetch('getSchedule',{leagueId:lid});
-      if(d?.data?.schedule?.events){
-        d.data.schedule.events.forEach(ev=>{
-          (ev.match?.teams||[]).forEach(t=>{
-            if(t.code&&t.image&&(!LOGOS[t.code]||LOGOS[t.code].startsWith('data:'))){
-              LOGOS[t.code]=t.image;
-              logoCache[t.code]=t.image;
-              document.querySelectorAll(`img.tlogo[alt="${t.code}"]`).forEach(el=>{if(el.src.startsWith('data:'))el.src=t.image});
-            }
-          });
+    // Method 3: getLeagues to discover all league+tournament IDs
+    const leagues=await riotEsportsFetch('getLeagues');
+    if(leagues?.data?.leagues){
+      leagues.data.leagues.forEach(lg=>{
+        (lg.tournaments||[]).forEach(tn=>{
+          // Cache tournament IDs for future use
         });
-      }
-      await new Promise(r=>setTimeout(r,500));
+      });
     }
     const filled=Object.keys(LOGOS).filter(k=>LOGOS[k]&&!LOGOS[k].startsWith('data:')).length;
     console.log(`🖼️ Riot Esports API: ${filled}개 팀 로고 로드`);
+
+    // Phase 2: Liquipedia fallback for teams still using SVG
+    await fetchLiquipediaLogos();
   }catch(e){console.log('Team logo fetch failed:',e.message)}
 }
+
+// Liquipedia commons API → proxy로 이미지 서빙 (403 우회)
+async function fetchLiquipediaLogos(){
+  const LP_FILE_MAP={
+    KRÜ:'KRU_Esports',LGD:'LGD_Gaming',RNG:'Royal_Never_Give_Up',
+    WBG:'Weibo_Gaming',NIP:'Ninjas_in_Pyjamas',ASE:'All_Spark_Esports',
+    NWG:'Nongshim_World_Gate',ME:'Mystic_Esports',
+    BLG:'Bilibili_Gaming',EDG:'EDward_Gaming',FPX:'FunPlus_Phoenix',
+    DRG:'Dragon_Ranger_Gaming',WOL:'Wolves_Esports',TE:'Trace_Esports',
+    TYL:'Tyloo',NOVA:'Nova_Esports',TEC:'Titan_Esports_Club',
+    AG:'AG_Esports',JDG:'JD_Gaming',G2:'G2_Esports',SEN:'Sentinels',
+    NRG:'NRG',MIBR:'MIBR',C9:'Cloud9',EG:'Evil_Geniuses',
+    LOUD:'LOUD',FURIA:'FURIA_Esports',LEV:'Leviatan',
+    TL:'Team_Liquid',FNC:'Fnatic',KC:'Karmine_Corp',NAVI:'Natus_Vincere',
+    VIT:'Team_Vitality',PRX:'Paper_Rex',T1:'T1',DRX:'DRX','GEN':'Gen.G',
+    RRQ:'Rex_Regum_Qeon',NS:'Nongshim_RedForce',DFM:'DetonatioN_FocusMe',
+    '100T':'100_Thieves',XLG:'XLGA',TYL:'TYLOO',Wolves:'Wolves_Esports'
+  };
+  // Only fetch for teams still using SVG data URIs
+  const svgTeams=Object.keys(LOGOS).filter(k=>LOGOS[k].startsWith('data:')&&LP_FILE_MAP[k]);
+  if(!svgTeams.length){console.log('🖼️ Liquipedia: 보완 필요 없음');return}
+  console.log(`🖼️ Liquipedia: ${svgTeams.length}개 팀 로고 보완 시도 (${svgTeams.join(', ')})`);
+
+  const COMMONS='https://liquipedia.net/commons/api.php';
+  for(const tag of svgTeams){
+    const prefix=LP_FILE_MAP[tag];
+    if(!prefix)continue;
+    try{
+      // Query commons API for file URL via proxy
+      const suffixes=['_allmode.png','_darkmode.png','_full_allmode.png','_full_darkmode.png'];
+      const titles=suffixes.map(s=>`File:${prefix}${s}`).join('|');
+      const d=await proxyFetchJSON(`${COMMONS}?action=query&titles=${encodeURIComponent(titles)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
+      if(!d?.query?.pages)continue;
+
+      // Find best match (prefer allmode > darkmode > full)
+      const pages=Object.values(d.query.pages).filter(p=>p.pageid>0&&p.imageinfo?.length);
+      if(!pages.length)continue;
+      pages.sort((a,b)=>{
+        const score=n=>(n||'').includes('allmode')?0:(n||'').includes('darkmode')?1:2;
+        return score(a.title)-score(b.title);
+      });
+      const imgUrl=pages[0].imageinfo[0].thumburl||pages[0].imageinfo[0].url;
+
+      // Use proxy URL as img src (bypasses Liquipedia 403 hotlink block)
+      const proxiedUrl=OWN_PROXY(imgUrl);
+      LOGOS[tag]=proxiedUrl;
+      logoCache[tag]=proxiedUrl;
+
+      // Update DOM
+      document.querySelectorAll(`img.tlogo[alt="${tag}"]`).forEach(el=>{if(el.src.startsWith('data:'))el.src=proxiedUrl});
+      document.querySelectorAll('span.tlogo-ph').forEach(el=>{
+        if(el.textContent===(tag[0]||''))el.outerHTML=`<img src="${proxiedUrl}" class="tlogo" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph\\'>${tag[0]}</span>'">`});
+      console.log(`🖼️ Liquipedia 보완: ${tag} ← ${prefix}`);
+    }catch(e){}
+    await new Promise(r=>setTimeout(r,2000)); // Liquipedia rate limit
+  }
+  const total=Object.keys(LOGOS).filter(k=>LOGOS[k]&&!LOGOS[k].startsWith('data:')).length;
+  console.log(`🖼️ 최종: ${total}개 팀 로고 로드 완료`);
+}
+
 // Fetch logos 3s after page load
 setTimeout(fetchRiotTeamLogos,3000);
 
