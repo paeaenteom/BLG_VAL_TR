@@ -602,32 +602,25 @@ async function fetchRiotTeamLogos(){
       }
       await new Promise(r=>setTimeout(r,500));
     }
-    // Method 2: getStandings (has all teams in league)
+    // Method 2: getStandings (보충 — 502 나면 무시)
     for(const lid of leagueIds){
-      const d=await riotEsportsFetch('getStandings',{leagueId:lid});
-      if(d?.data?.standings){
-        (Array.isArray(d.data.standings)?d.data.standings:[d.data.standings]).forEach(s=>{
-          (s.stages||[]).forEach(st=>{
-            (st.sections||[]).forEach(sec=>{
-              (sec.rankings||[]).forEach(r=>{
-                (r.teams||[]).forEach(t=>{
-                  if(t.code&&t.image)applyLogo(t.code,t.image);
+      try{
+        const d=await riotEsportsFetch('getStandings',{leagueId:lid});
+        if(d?.data?.standings){
+          (Array.isArray(d.data.standings)?d.data.standings:[d.data.standings]).forEach(s=>{
+            (s.stages||[]).forEach(st=>{
+              (st.sections||[]).forEach(sec=>{
+                (sec.rankings||[]).forEach(r=>{
+                  (r.teams||[]).forEach(t=>{
+                    if(t.code&&t.image)applyLogo(t.code,t.image);
+                  });
                 });
               });
             });
           });
-        });
-      }
+        }
+      }catch(e){}
       await new Promise(r=>setTimeout(r,500));
-    }
-    // Method 3: getLeagues to discover all league+tournament IDs
-    const leagues=await riotEsportsFetch('getLeagues');
-    if(leagues?.data?.leagues){
-      leagues.data.leagues.forEach(lg=>{
-        (lg.tournaments||[]).forEach(tn=>{
-          // Cache tournament IDs for future use
-        });
-      });
     }
     const filled=Object.keys(LOGOS).filter(k=>LOGOS[k]&&!LOGOS[k].startsWith('data:')).length;
     console.log(`🖼️ Riot Esports API: ${filled}개 팀 로고 로드`);
@@ -703,7 +696,7 @@ async function fetchLiquipediaLogos(){
         if(el.textContent===(tag[0]||''))el.outerHTML=`<img src="${proxiedUrl}" class="tlogo" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph\\'>${tag[0]}</span>'">`});
       console.log(`🖼️ Liquipedia 보완: ${tag} ← ${best.name}`);
     }catch(e){console.log(`🖼️ Liquipedia 실패: ${tag}`,e.message)}
-    await new Promise(r=>setTimeout(r,2000)); // Liquipedia rate limit 존중
+    await new Promise(r=>setTimeout(r,3000)); // Liquipedia rate limit 존중 (3초)
   }
   const total=Object.keys(LOGOS).filter(k=>LOGOS[k]&&!LOGOS[k].startsWith('data:')).length;
   console.log(`🖼️ 최종: ${total}개 팀 로고 로드 완료`);
