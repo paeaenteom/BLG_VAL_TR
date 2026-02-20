@@ -519,9 +519,9 @@ const LOGOS={
   NS:VE+"1674219422693_NS_.png",
   DFM:VE+"1675669923678_190px-DetonatioN_FocusMe_2022_darkmode1.png",
   // Teams without hardcoded logos (filled by Riot Esports API or SVG fallback)
-  KRÜ:'',LGD:'',RNG:'',WBG:'',NIP:'',ASE:'',NWG:'',ME:'',
-  // 2023 FGC / minor teams (placeholder - replace with real URLs)
-  iG:'',iNv:'',NTER:'',TTG:'',RA:'','4AM':'',NOP:'',JJH:'',NH:'',KZ:'',GK:'',DYG:'',VLG:'',O3O:'','X.Game':'',
+  KRÜ:'https://liquipedia.net/commons/Special:Redirect/file/KRU_Esports_full_darkmode.png',LGD:'https://owcdn.net/img/6549c2de5598b.png',RNG:'https://owcdn.net/img/63eb523921a3e.png',WBG:'https://owcdn.net/img/62232bd14e5d7.png',NIP:'',ASE:'https://owcdn.net/img/62bd5058300a4.png',NWG:'https://owcdn.net/img/6548758279b91.png',ME:'https://owcdn.net/img/634673899ad29.png',
+  // 2023 FGC / minor teams
+  iG:'',iNv:'https://owcdn.net/img/60d2691f1a152.png',NTER:'https://owcdn.net/img/60d26a046c0ac.png',TTG:'https://owcdn.net/img/63eb56072ae3f.png',RA:'','4AM':'https://owcdn.net/img/63eb550dc51f5.png',NOP:'https://owcdn.net/img/612fcc4c7992d.png',JJH:'https://owcdn.net/img/642afe112f136.png',NH:'https://owcdn.net/img/640722a56e28f.png',KZ:'https://owcdn.net/img/63eb5b7da623b.png',GK:'https://owcdn.net/img/640e7f9282b65.png',DYG:'https://owcdn.net/img/63f2618ba8574.png',VLG:'https://liquipedia.net/commons/images/thumb/4/4f/VLG_China_allmode.png/100px-VLG_China_allmode.png',O3O:'https://owcdn.net/img/6340079e4549b.png',
 };
 // Generate SVG text logo for teams without images
 function _tsvg(tag,bg='#333',fg='#fff'){
@@ -529,7 +529,7 @@ function _tsvg(tag,bg='#333',fg='#fff'){
   return`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="8" fill="${bg}"/><text x="20" y="24" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="${sz}" fill="${fg}">${tag}</text></svg>`)}`;
 }
 // Fill empty logos with SVG initially (Riot Esports API will replace with real logos)
-const _LOGO_COLORS={KRÜ:'#5b21b6',LGD:'#dc2626',RNG:'#eab308',WBG:'#3b82f6',NIP:'#f59e0b',ASE:'#10b981',NWG:'#6366f1',ME:'#ec4899',Wolves:'#f97316',TBD:'#555',iG:'#b91c1c',iNv:'#059669',NTER:'#0284c7',TTG:'#7c3aed',RA:'#dc2626','4AM':'#eab308',NOP:'#6b7280',JJH:'#f59e0b',NH:'#2563eb',KZ:'#4f46e5',GK:'#14b8a6',DYG:'#f97316',VLG:'#8b5cf6',O3O:'#06b6d4','X.Game':'#64748b'};
+const _LOGO_COLORS={KRÜ:'#5b21b6',LGD:'#dc2626',RNG:'#eab308',WBG:'#3b82f6',NIP:'#f59e0b',ASE:'#10b981',NWG:'#6366f1',ME:'#ec4899',Wolves:'#f97316',TBD:'#555',iG:'#b91c1c',iNv:'#059669',NTER:'#0284c7',TTG:'#7c3aed',RA:'#dc2626','4AM':'#eab308',NOP:'#6b7280',JJH:'#f59e0b',NH:'#2563eb',KZ:'#4f46e5',GK:'#14b8a6',DYG:'#f97316',VLG:'#8b5cf6',O3O:'#06b6d4'};
 Object.keys(LOGOS).forEach(k=>{if(!LOGOS[k])LOGOS[k]=_tsvg(k,_LOGO_COLORS[k]||'#333')});
 function L(tag,sz=''){const u=LOGOS[tag]||logoCache[tag];if(u&&u!=='pending'&&u!==false)return`<img src="${u}" class="tlogo ${sz}" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph ${sz}\\'>${tag[0]}</span>'">`;if(!LOGOS[tag]&&!logoCache[tag])fetchTeamLogo(tag);return`<span class="tlogo-ph ${sz}">${tag[0]||'?'}</span>`}
 
@@ -648,7 +648,8 @@ async function fetchLiquipediaLogos(){
     TL:'Team_Liquid',FNC:'Fnatic',KC:'Karmine_Corp',NAVI:'Natus_Vincere',
     VIT:'Team_Vitality',PRX:'Paper_Rex',T1:'T1',DRX:'DRX',GEN:'Gen.G',
     RRQ:'Rex_Regum_Qeon',NS:'Nongshim_RedForce',DFM:'DetonatioN_FocusMe',
-    '100T':'100_Thieves',XLG:'XLGA',Wolves:'Wolves_Esports'
+    '100T':'100_Thieves',XLG:'XLGA',Wolves:'Wolves_Esports',
+    iG:'Invictus_Gaming',RA:'Rare_Atom'
   };
   // 페이지명이 파일명과 다른 팀 (특수문자 등)
   const LP_PAGE={KRÜ:'KRÜ_Esports',LEV:'Leviatán'};
@@ -989,12 +990,12 @@ const baselineData = {
     {date:"2025-02-15",opp:"JDG Esports",tag:"JDG",stage:"CF",fmt:"Bo5",bs:3,os:0,r:"win",maps:[{n:"Abyss",b:13,o:9,r:"win"},{n:"Pearl",b:13,o:3,r:"win"},{n:"Lotus",b:13,o:11,r:"win"}]}
   ]},
   {tournament:"VCT 2025: China Stage 1",intl:false,matches:[
-    {date:"2025-03-13",opp:"Xi Lai Gaming",tag:"XLG",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
-    {date:"2025-03-23",opp:"JDG Esports",tag:"JDG",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
-    {date:"2025-03-30",opp:"All Gamers",tag:"AG",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2025-04-04",opp:"Wolves Esports",tag:"WOL",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
-    {date:"2025-04-12",opp:"Trace Esports",tag:"TE",stage:"UB Quarter",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-04-19",opp:"Wolves Esports",tag:"WOL",stage:"UB Semi",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
+    {date:"2025-03-13",opp:"Xi Lai Gaming",tag:"XLG",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Pearl",b:8,o:13,r:"loss"},{n:"Icebox",b:13,o:9,r:"win"},{n:"Fracture",b:13,o:8,r:"win"}]},
+    {date:"2025-03-23",opp:"JDG Esports",tag:"JDG",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Pearl",b:13,o:10,r:"win"},{n:"Icebox",b:5,o:13,r:"loss"},{n:"Fracture",b:13,o:8,r:"win"}]},
+    {date:"2025-03-30",opp:"All Gamers",tag:"AG",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Pearl",b:13,o:4,r:"win"},{n:"Fracture",b:13,o:5,r:"win"}]},
+    {date:"2025-04-04",opp:"Wolves Esports",tag:"WOL",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Lotus",b:10,o:13,r:"loss"},{n:"Haven",b:13,o:5,r:"win"},{n:"Ascent",b:13,o:4,r:"win"}]},
+    {date:"2025-04-12",opp:"Trace Esports",tag:"TE",stage:"Regular Season",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Haven",b:4,o:13,r:"loss"},{n:"Ascent",b:13,o:5,r:"win"},{n:"Split",b:1,o:13,r:"loss"}]},
+    {date:"2025-04-19",opp:"Wolves Esports",tag:"WOL",stage:"UB Semi",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Split",b:8,o:13,r:"loss"},{n:"Haven",b:8,o:13,r:"loss"}]},
     {date:"2025-04-20",opp:"Trace Esports",tag:"TE",stage:"LR2",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Fracture",b:13,o:8,r:"win"},{n:"Pearl",b:13,o:6,r:"win"}]},
     {date:"2025-05-02",opp:"EDward Gaming",tag:"EDG",stage:"LR3",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Fracture",b:8,o:13,r:"loss"},{n:"Icebox",b:13,o:8,r:"win"},{n:"Pearl",b:13,o:11,r:"win"}]},
     {date:"2025-05-03",opp:"Wolves Esports",tag:"WOL",stage:"LBF",fmt:"Bo5",bs:3,os:0,r:"win",maps:[{n:"Pearl",b:13,o:9,r:"win"},{n:"Lotus",b:13,o:11,r:"win"},{n:"Icebox",b:13,o:7,r:"win"}]},
@@ -1007,10 +1008,6 @@ const baselineData = {
     {date:"2025-05-14",opp:"DRX",tag:"DRX",stage:"LR2",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Haven",b:1,o:13,r:"loss"},{n:"Icebox",b:12,o:14,r:"loss"}]},
     {date:"2025-05-15",opp:"Trace Esports",tag:"TE",stage:"LR2",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Pearl",b:13,o:9,r:"win"},{n:"Split",b:13,o:4,r:"win"}]},
     {date:"2025-05-16",opp:"DRX",tag:"DRX",stage:"LR3",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Sunset",b:10,o:13,r:"loss"},{n:"Lotus",b:5,o:13,r:"loss"}]}
-  ]},
-  {tournament:"CN Nationals S4",intl:false,matches:[
-    {date:"2025-06-14",opp:"X-GAME",tag:"X.Game",stage:"Ro16",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Split",b:13,o:3,r:"win"},{n:"Lotus",b:4,o:13,r:"loss"}]},
-    {date:"2025-06-15",opp:"Rare Atom",tag:"RA",stage:"QF",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Split",b:4,o:13,r:"loss"},{n:"Lotus",b:11,o:13,r:"loss"}]}
   ]},
   {tournament:"VCT Masters Toronto 2025",intl:true,matches:[
     {date:"2025-06-07",opp:"Team Liquid",tag:"TL",stage:"R1",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Icebox",b:13,o:10,r:"win"},{n:"Haven",b:14,o:16,r:"loss"},{n:"Sunset",b:13,o:10,r:"win"}]},
