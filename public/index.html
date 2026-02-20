@@ -699,27 +699,71 @@ async function fetchLiquipediaLogos(){
         }
       }
 
-      // Method 2: 팀 페이지에서 images 목록 가져와서 로고 찾기
+      // Method 2: 팀 인포박스에서 정확한 로고 파일명 추출 (가장 정확)
       const teamPage=(LP_PAGE[tag]||prefix).replace(/_/g,' ');
-      const d2=await proxyFetchJSON(`${VALWIKI}?action=query&titles=${encodeURIComponent(teamPage)}&prop=images&imlimit=50&format=json`);
-      if(d2?.query?.pages){
-        const pg=Object.values(d2.query.pages).find(p=>p.pageid>0);
-        if(!pg)console.log(`🖼️ LP M2 miss: ${tag} — 페이지 "${teamPage}" 없음`);
+      const d2=await proxyFetchJSON(`${VALWIKI}?action=parse&page=${encodeURIComponent(teamPage)}&prop=wikitext&section=0&format=json`);
+      if(d2?.parse?.wikitext){
+        const wt=typeof d2.parse.wikitext==='object'?d2.parse.wikitext['*']:d2.parse.wikitext;
+        // |image= 또는 |image1= 에서 로고 파일명 추출
+        const imgMatch=wt.match(/\|\s*image\d?\s*=\s*([^\n|]+)/i);
+        if(imgMatch){
+          const logoFile=imgMatch[1].trim();
+          console.log(`🖼️ LP M2 인포박스: ${tag} → ${logoFile}`);
+          const d3=await proxyFetchJSON(`${VALWIKI}?action=query&titles=${encodeURIComponent('File:'+logoFile)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
+          const p3=Object.values(d3?.query?.pages||{}).find(p=>p.imageinfo?.length);
+          if(p3){
+            const imgUrl=p3.imageinfo[0].thumburl||p3.imageinfo[0].url;
+            const proxiedUrl=OWN_PROXY(imgUrl);
+            LOGOS[tag]=proxiedUrl;
+            logoCache[tag]=proxiedUrl;
+            document.querySelectorAll(`img.tlogo[alt="${tag}"]`).forEach(el=>{if(el.src.startsWith('data:'))el.src=proxiedUrl});
+            console.log(`🖼️ Liquipedia 보완: ${tag} ← ${logoFile}`);
+            await new Promise(r=>setTimeout(r,3000));
+            continue;
+          }
+        }else{
+          console.log(`🖼️ LP M2 miss: ${tag} — 인포박스에 image= 없음`);
+        }
+      }else{
+        console.log(`🖼️ LP M2 miss: ${tag} — 페이지 "${teamPage}" 파싱 실패`);
+      }
+
+      // Method 3: 팀 페이지 images 목록에서 팀명 매칭 (fallback)
+      const d4=await proxyFetchJSON(`${VALWIKI}?action=query&titles=${encodeURIComponent(teamPage)}&prop=images&imlimit=500&format=json`);
+      if(d4?.query?.pages){
+        const pg=Object.values(d4.query.pages).find(p=>p.pageid>0);
         if(pg?.images?.length){
-          const logoImgs=pg.images.filter(im=>/allmode|darkmode|logo/i.test(im.title)&&!/player|banner|map/i.test(im.title));
-          console.log(`🖼️ LP M2: ${tag} 페이지 이미지 ${pg.images.length}개, 로고 후보 ${logoImgs.length}개`);
+          const nameVariants=[
+            prefix.toLowerCase().replace(/_/g,' '),
+            ...(LP_PAGE[tag]?[LP_PAGE[tag].toLowerCase().replace(/_/g,' ')]:[])
+          ];
+          const logoImgs=pg.images.filter(im=>{
+            const t=(im.title||'').toLowerCase();
+            const hasTeamName=nameVariants.some(n=>t.includes(n));
+            const isLogo=/allmode|darkmode|logo/i.test(t);
+            const notJunk=!/player|banner|map|screenshot|header/i.test(t);
+            return hasTeamName&&isLogo&&notJunk;
+          });
+          logoImgs.sort((a,b)=>{
+            const score=n=>{
+              if(!n)return 9;n=n.toLowerCase();
+              if(n.includes('allmode')&&!n.includes('full'))return 0;
+              if(n.includes('darkmode')&&!n.includes('full'))return 1;
+              return 4;
+            };
+            return score(a.title)-score(b.title);
+          });
+          console.log(`🖼️ LP M3: ${tag} 팀명 매칭 ${logoImgs.length}개${logoImgs.length?': '+logoImgs[0].title:''}`);
           if(logoImgs.length){
-            // 첫 번째 로고 이미지의 URL 가져오기
-            const imgTitle=logoImgs[0].title;
-            const d3=await proxyFetchJSON(`${VALWIKI}?action=query&titles=${encodeURIComponent(imgTitle)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
-            const p3=Object.values(d3?.query?.pages||{}).find(p=>p.imageinfo?.length);
-            if(p3){
-              const imgUrl=p3.imageinfo[0].thumburl||p3.imageinfo[0].url;
+            const d5=await proxyFetchJSON(`${VALWIKI}?action=query&titles=${encodeURIComponent(logoImgs[0].title)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
+            const p5=Object.values(d5?.query?.pages||{}).find(p=>p.imageinfo?.length);
+            if(p5){
+              const imgUrl=p5.imageinfo[0].thumburl||p5.imageinfo[0].url;
               const proxiedUrl=OWN_PROXY(imgUrl);
               LOGOS[tag]=proxiedUrl;
               logoCache[tag]=proxiedUrl;
               document.querySelectorAll(`img.tlogo[alt="${tag}"]`).forEach(el=>{if(el.src.startsWith('data:'))el.src=proxiedUrl});
-              console.log(`🖼️ Liquipedia 보완(M2): ${tag} ← ${imgTitle}`);
+              console.log(`🖼️ Liquipedia 보완(M3): ${tag} ← ${logoImgs[0].title}`);
             }
           }
         }
