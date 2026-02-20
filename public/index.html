@@ -632,7 +632,7 @@ async function fetchRiotTeamLogos(){
 
 // Liquipedia commons API → proxy로 이미지 서빙 (403 우회)
 async function fetchLiquipediaLogos(){
-  // tag → 풀네임 prefix (Liquipedia 파일명 규칙)
+  // tag → [파일명 prefix, 페이지명] (Liquipedia 규칙)
   const LP_NAME={
     KRÜ:'KRU_Esports',LGD:'LGD_Gaming',RNG:'Royal_Never_Give_Up',
     WBG:'Weibo_Gaming',NIP:'Ninjas_in_Pyjamas',ASE:'All_Spark_Esports',
@@ -648,55 +648,84 @@ async function fetchLiquipediaLogos(){
     RRQ:'Rex_Regum_Qeon',NS:'Nongshim_RedForce',DFM:'DetonatioN_FocusMe',
     '100T':'100_Thieves',XLG:'XLGA',Wolves:'Wolves_Esports'
   };
+  // 페이지명이 파일명과 다른 팀 (특수문자 등)
+  const LP_PAGE={KRÜ:'KRÜ_Esports',LEV:'Leviatán'};
   // Only fetch for teams still using SVG data URIs
   const svgTeams=Object.keys(LOGOS).filter(k=>LOGOS[k].startsWith('data:')&&LP_NAME[k]);
   if(!svgTeams.length){console.log('🖼️ Liquipedia: 보완 필요 없음');return}
   console.log(`🖼️ Liquipedia: ${svgTeams.length}개 팀 로고 보완 시도 (${svgTeams.join(', ')})`);
 
-  const COMMONS='https://liquipedia.net/commons/api.php';
+  // valorant wiki API 사용 (commons는 403 차단됨, valorant은 로스터에서 검증됨)
+  const VALWIKI='https://liquipedia.net/valorant/api.php';
   for(const tag of svgTeams){
     const prefix=LP_NAME[tag];
     if(!prefix)continue;
     try{
-      // allimages prefix 검색 — 풀네임으로 해당 팀 모든 파일 탐색
-      const d=await proxyFetchJSON(`${COMMONS}?action=query&list=allimages&aiprefix=${encodeURIComponent(prefix)}&ailimit=30&format=json`);
-      const imgs=d?.query?.allimages||[];
-      if(!imgs.length){console.log(`🖼️ Liquipedia: ${tag} (${prefix}) — 파일 없음`);continue}
-
-      // 로고 파일 우선순위: allmode > darkmode > lightmode > logo > 기본
-      const logoPriority=[
-        /_allmode\.(png|svg)$/i,
-        /_darkmode\.(png|svg)$/i,
-        /_full_allmode\.(png|svg)$/i,
-        /_full_darkmode\.(png|svg)$/i,
-        /_lightmode\.(png|svg)$/i,
-        /logo/i,
-      ];
-      // 비로고 파일 제외 (선수사진, 맵, 결과 등)
-      const excluded=/player|map|result|banner|wordmark|trophy|bg_|header|screenshot/i;
-      const candidates=imgs.filter(f=>!excluded.test(f.name));
-      if(!candidates.length)continue;
-
-      let best=null;
-      for(const pat of logoPriority){
-        best=candidates.find(f=>pat.test(f.name));
-        if(best)break;
+      // Method 1: imageinfo로 예상 파일명 직접 조회
+      const suffixes=['_allmode.png','_darkmode.png','_full_allmode.png','_full_darkmode.png','_lightmode.png'];
+      // 대안 prefix도 시도 (KRÜ→KRU + KRÜ 둘 다)
+      const prefixes=[prefix];
+      if(LP_PAGE[tag]){const alt=LP_PAGE[tag].replace(/ /g,'_');if(alt!==prefix)prefixes.push(alt)}
+      const titles=prefixes.flatMap(p=>suffixes.map(s=>`File:${p}${s}`)).join('|');
+      const d=await proxyFetchJSON(`${VALWIKI}?action=query&titles=${encodeURIComponent(titles)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
+      
+      if(d?.query?.pages){
+        const pages=Object.values(d.query.pages).filter(p=>p.pageid>0&&p.imageinfo?.length);
+        const missing=Object.values(d.query.pages).filter(p=>p.missing!==undefined).map(p=>p.title);
+        if(!pages.length)console.log(`🖼️ LP M1 miss: ${tag} — 없는 파일: ${missing.slice(0,3).join(', ')}...`);
+        if(pages.length){
+          // 우선순위: allmode > darkmode > full > lightmode
+          pages.sort((a,b)=>{
+            const score=n=>{
+              if(!n)return 9;
+              if(n.includes('_allmode'))return 0;
+              if(n.includes('_darkmode'))return 1;
+              if(n.includes('_full_allmode'))return 2;
+              if(n.includes('_full_darkmode'))return 3;
+              return 4;
+            };
+            return score(a.title)-score(b.title);
+          });
+          const imgUrl=pages[0].imageinfo[0].thumburl||pages[0].imageinfo[0].url;
+          const proxiedUrl=OWN_PROXY(imgUrl);
+          LOGOS[tag]=proxiedUrl;
+          logoCache[tag]=proxiedUrl;
+          document.querySelectorAll(`img.tlogo[alt="${tag}"]`).forEach(el=>{if(el.src.startsWith('data:'))el.src=proxiedUrl});
+          document.querySelectorAll('span.tlogo-ph').forEach(el=>{
+            if(el.textContent===(tag[0]||''))el.outerHTML=`<img src="${proxiedUrl}" class="tlogo" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph\\'>${tag[0]}</span>'">`});
+          console.log(`🖼️ Liquipedia 보완: ${tag} ← ${pages[0].title}`);
+          await new Promise(r=>setTimeout(r,3000));
+          continue;
+        }
       }
-      if(!best) best=candidates[0]; // 아무거나라도
 
-      // thumburl 생성 (96px)
-      const imgUrl=best.url.replace(/\/commons\/images\//,'/commons/images/thumb/')+'?width=96';
-      const proxiedUrl=OWN_PROXY(best.url);
-      LOGOS[tag]=proxiedUrl;
-      logoCache[tag]=proxiedUrl;
-
-      // Update DOM
-      document.querySelectorAll(`img.tlogo[alt="${tag}"]`).forEach(el=>{if(el.src.startsWith('data:'))el.src=proxiedUrl});
-      document.querySelectorAll('span.tlogo-ph').forEach(el=>{
-        if(el.textContent===(tag[0]||''))el.outerHTML=`<img src="${proxiedUrl}" class="tlogo" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph\\'>${tag[0]}</span>'">`});
-      console.log(`🖼️ Liquipedia 보완: ${tag} ← ${best.name}`);
+      // Method 2: 팀 페이지에서 images 목록 가져와서 로고 찾기
+      const teamPage=(LP_PAGE[tag]||prefix).replace(/_/g,' ');
+      const d2=await proxyFetchJSON(`${VALWIKI}?action=query&titles=${encodeURIComponent(teamPage)}&prop=images&imlimit=50&format=json`);
+      if(d2?.query?.pages){
+        const pg=Object.values(d2.query.pages).find(p=>p.pageid>0);
+        if(!pg)console.log(`🖼️ LP M2 miss: ${tag} — 페이지 "${teamPage}" 없음`);
+        if(pg?.images?.length){
+          const logoImgs=pg.images.filter(im=>/allmode|darkmode|logo/i.test(im.title)&&!/player|banner|map/i.test(im.title));
+          console.log(`🖼️ LP M2: ${tag} 페이지 이미지 ${pg.images.length}개, 로고 후보 ${logoImgs.length}개`);
+          if(logoImgs.length){
+            // 첫 번째 로고 이미지의 URL 가져오기
+            const imgTitle=logoImgs[0].title;
+            const d3=await proxyFetchJSON(`${VALWIKI}?action=query&titles=${encodeURIComponent(imgTitle)}&prop=imageinfo&iiprop=url&iiurlwidth=96&format=json`);
+            const p3=Object.values(d3?.query?.pages||{}).find(p=>p.imageinfo?.length);
+            if(p3){
+              const imgUrl=p3.imageinfo[0].thumburl||p3.imageinfo[0].url;
+              const proxiedUrl=OWN_PROXY(imgUrl);
+              LOGOS[tag]=proxiedUrl;
+              logoCache[tag]=proxiedUrl;
+              document.querySelectorAll(`img.tlogo[alt="${tag}"]`).forEach(el=>{if(el.src.startsWith('data:'))el.src=proxiedUrl});
+              console.log(`🖼️ Liquipedia 보완(M2): ${tag} ← ${imgTitle}`);
+            }
+          }
+        }
+      }
     }catch(e){console.log(`🖼️ Liquipedia 실패: ${tag}`,e.message)}
-    await new Promise(r=>setTimeout(r,3000)); // Liquipedia rate limit 존중 (3초)
+    await new Promise(r=>setTimeout(r,3000));
   }
   const total=Object.keys(LOGOS).filter(k=>LOGOS[k]&&!LOGOS[k].startsWith('data:')).length;
   console.log(`🖼️ 최종: ${total}개 팀 로고 로드 완료`);
