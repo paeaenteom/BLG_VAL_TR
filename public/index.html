@@ -520,6 +520,8 @@ const LOGOS={
   DFM:VE+"1675669923678_190px-DetonatioN_FocusMe_2022_darkmode1.png",
   // Teams without hardcoded logos (filled by Riot Esports API or SVG fallback)
   KRÜ:'',LGD:'',RNG:'',WBG:'',NIP:'',ASE:'',NWG:'',ME:'',
+  // 2023 FGC / minor teams (placeholder - replace with real URLs)
+  iG:'',iNv:'',NTER:'',TTG:'',RA:'','4AM':'',NOP:'',JJH:'',NH:'',KZ:'',GK:'',DYG:'',VLG:'',O3O:'','X.Game':'',
 };
 // Generate SVG text logo for teams without images
 function _tsvg(tag,bg='#333',fg='#fff'){
@@ -527,7 +529,7 @@ function _tsvg(tag,bg='#333',fg='#fff'){
   return`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="8" fill="${bg}"/><text x="20" y="24" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="${sz}" fill="${fg}">${tag}</text></svg>`)}`;
 }
 // Fill empty logos with SVG initially (Riot Esports API will replace with real logos)
-const _LOGO_COLORS={KRÜ:'#5b21b6',LGD:'#dc2626',RNG:'#eab308',WBG:'#3b82f6',NIP:'#f59e0b',ASE:'#10b981',NWG:'#6366f1',ME:'#ec4899',Wolves:'#f97316',TBD:'#555'};
+const _LOGO_COLORS={KRÜ:'#5b21b6',LGD:'#dc2626',RNG:'#eab308',WBG:'#3b82f6',NIP:'#f59e0b',ASE:'#10b981',NWG:'#6366f1',ME:'#ec4899',Wolves:'#f97316',TBD:'#555',iG:'#b91c1c',iNv:'#059669',NTER:'#0284c7',TTG:'#7c3aed',RA:'#dc2626','4AM':'#eab308',NOP:'#6b7280',JJH:'#f59e0b',NH:'#2563eb',KZ:'#4f46e5',GK:'#14b8a6',DYG:'#f97316',VLG:'#8b5cf6',O3O:'#06b6d4','X.Game':'#64748b'};
 Object.keys(LOGOS).forEach(k=>{if(!LOGOS[k])LOGOS[k]=_tsvg(k,_LOGO_COLORS[k]||'#333')});
 function L(tag,sz=''){const u=LOGOS[tag]||logoCache[tag];if(u&&u!=='pending'&&u!==false)return`<img src="${u}" class="tlogo ${sz}" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph ${sz}\\'>${tag[0]}</span>'">`;if(!LOGOS[tag]&&!logoCache[tag])fetchTeamLogo(tag);return`<span class="tlogo-ph ${sz}">${tag[0]||'?'}</span>`}
 
@@ -862,145 +864,209 @@ setInterval(renderUpcoming, 60000);
 
 // ===== MATCH DATA =====
 const baselineData = {
-  "2024":[
-  {tournament:"VCT 2024: China Kickoff",intl:false,matches:[
-    {date:"2024-02-27",opp:"Trace Esports",tag:"TE",stage:"Group Stage",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2024-02-27",opp:"Titan Esports Club",tag:"TEC",stage:"Group Stage",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2024-02-26",opp:"Wolves Esports",tag:"WOL",stage:"Group Stage",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2024-02-23",opp:"Wolves Esports",tag:"WOL",stage:"Group Stage",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-  ]},{tournament:"VCT 2024: China Stage 1",intl:false,matches:[
-    {date:"2024-05-04",opp:"FunPlus Phoenix",tag:"FPX",stage:"Regular Season",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2024-04-28",opp:"JDG Esports",tag:"JDG",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2024-04-26",opp:"Titan Esports Club",tag:"TEC",stage:"Regular Season",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2024-04-20",opp:"All Gamers",tag:"AG",stage:"Regular Season",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2024-04-13",opp:"Trace Esports",tag:"TE",stage:"Regular Season",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2024-04-05",opp:"TYLOO",tag:"TYL",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-  ]},{tournament:"VCT 2024: China Stage 2",intl:false,matches:[
-    {date:"2024-07-18",opp:"FunPlus Phoenix",tag:"FPX",stage:"Playoffs",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2024-07-17",opp:"EDward Gaming",tag:"EDG",stage:"Playoffs",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2024-07-16",opp:"JDG Esports",tag:"JDG",stage:"Playoffs",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2024-07-06",opp:"EDward Gaming",tag:"EDG",stage:"Regular Season",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2024-06-30",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2024-06-23",opp:"Nova Esports",tag:"NOVA",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2024-06-16",opp:"Wolves Esports",tag:"WOL",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-  ]},{tournament:"VALORANT Champions 2024 (Seoul)",intl:true,matches:[
-    {date:"2024-08-08",opp:"KRÜ Esports",tag:"KRÜ",stage:"Group B Elim.",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2024-08-02",opp:"FNATIC",tag:"FNC",stage:"Group B Opening",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-  ]},{tournament:"FGC Invitational 2024",intl:false,matches:[
-    {date:"2024-11-10",opp:"Wolves Esports",tag:"WOL",stage:"Grand Final",fmt:"Bo5",bs:3,os:1,r:"win",maps:[]},
-    {date:"2024-11-08",opp:"Wolves Esports",tag:"WOL",stage:"UB Final",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
-    {date:"2024-11-06",opp:"Nova Esports",tag:"NOVA",stage:"UB Semi",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2024-11-01",opp:"Xi Lai Gaming",tag:"XLG",stage:"UB Quarter",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
-  ]},{tournament:"Radiant Asia Invitational 2024",intl:true,matches:[
-    {date:"2024-11-24",opp:"Trace Esports",tag:"TE",stage:"Group Stage",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2024-11-22",opp:"DRX",tag:"DRX",stage:"Group Stage",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-  ]},{tournament:"SOOP Valorant League 2024",intl:true,matches:[
-    {date:"2024-12-13",opp:"NRG",tag:"NRG",stage:"Group Stage",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2024-12-11",opp:"DRX",tag:"DRX",stage:"Group Stage",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-  ]}],
-  "2025":[
-  {tournament:"VCT 2025: China Kickoff",intl:false,matches:[
-    {date:"2025-01-24",opp:"EDward Gaming",tag:"EDG",stage:"Elimination",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-01-23",opp:"Trace Esports",tag:"TE",stage:"Mid Bracket",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-01-20",opp:"FunPlus Phoenix",tag:"FPX",stage:"Upper Bracket",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2025-01-16",opp:"Xi Lai Gaming",tag:"XLG",stage:"Upper Bracket",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-  ]},{tournament:"China Evolution Series: Act 1",intl:false,matches:[
-    {date:"2025-02-15",opp:"JDG Esports",tag:"JDG",stage:"Group Stage",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2025-02-14",opp:"Nova Esports",tag:"NOVA",stage:"Group Stage",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-02-10",opp:"TYLOO",tag:"TYL",stage:"Group Stage",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-  ]},{tournament:"VCT 2025: China Stage 1",intl:false,matches:[
-    {date:"2025-05-04",opp:"Xi Lai Gaming",tag:"XLG",stage:"Grand Final",fmt:"Bo5",bs:1,os:3,r:"loss",maps:[]},
-    {date:"2025-05-03",opp:"Wolves Esports",tag:"WOL",stage:"LB Final",fmt:"Bo5",bs:3,os:0,r:"win",maps:[]},
-    {date:"2025-05-02",opp:"EDward Gaming",tag:"EDG",stage:"LB Semi",fmt:"Bo5",bs:3,os:1,r:"win",maps:[]},
-    {date:"2025-04-20",opp:"Trace Esports",tag:"TE",stage:"LB R2",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2025-04-19",opp:"Wolves Esports",tag:"WOL",stage:"UB Semi",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-04-12",opp:"Trace Esports",tag:"TE",stage:"UB Quarter",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-04-04",opp:"Wolves Esports",tag:"WOL",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
-    {date:"2025-03-30",opp:"All Gamers",tag:"AG",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2025-03-23",opp:"JDG Esports",tag:"JDG",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
-    {date:"2025-03-13",opp:"Xi Lai Gaming",tag:"XLG",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
-  ]},{tournament:"HERO Asian Champions League 2025",intl:true,matches:[
-    {date:"2025-05-16",opp:"DRX",tag:"DRX",stage:"3rd Place",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-05-15",opp:"Trace Esports",tag:"TE",stage:"Semifinal",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2025-05-14",opp:"DRX",tag:"DRX",stage:"Group Stage",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-  ]},{tournament:"VCT Masters Toronto 2025",intl:true,matches:[
-    {date:"2025-06-11",opp:"Wolves Esports",tag:"WOL",stage:"Swiss R3 (0-2)",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-06-09",opp:"Sentinels",tag:"SEN",stage:"Swiss R2",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-06-07",opp:"Team Liquid",tag:"TL",stage:"Swiss R1",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-  ]},{tournament:"Esports World Cup 2025",intl:true,matches:[
-    {date:"2025-07-10",opp:"Karmine Corp",tag:"KC",stage:"Group A Elim.",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-07-09",opp:"G2 Esports",tag:"G2",stage:"Group A",fmt:"Bo1",bs:1,os:0,r:"win",maps:[]},
-    {date:"2025-07-08",opp:"Paper Rex",tag:"PRX",stage:"Group A",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[]},
-  ]},{tournament:"VCT 2025: China Stage 2",intl:false,matches:[
-    {date:"2025-08-24",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"Grand Final",fmt:"Bo5",bs:3,os:1,r:"win",maps:[]},
-    {date:"2025-08-23",opp:"EDward Gaming",tag:"EDG",stage:"LB Final",fmt:"Bo5",bs:3,os:1,r:"win",maps:[]},
-    {date:"2025-08-22",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"UB Final",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-08-20",opp:"TYLOO",tag:"TYL",stage:"UB Semi",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2025-08-03",opp:"EDward Gaming",tag:"EDG",stage:"UB Quarter",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2025-07-26",opp:"Trace Esports",tag:"TE",stage:"Regular Season",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-07-23",opp:"Titan Esports Club",tag:"TEC",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2025-07-18",opp:"JDG Esports",tag:"JDG",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2025-07-04",opp:"TYLOO",tag:"TYL",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-  ]},{tournament:"VALORANT Champions 2025 (Paris)",intl:true,matches:[
-    {date:"2025-09-20",opp:"Rex Regum Qeon",tag:"RRQ",stage:"Group B Elim.",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[]},
-    {date:"2025-09-15",opp:"MIBR",tag:"MIBR",stage:"Group B Opening",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-  ]},{tournament:"Super Champions Cup 2025",intl:true,matches:[
-    {date:"2025-11-30",opp:"EDward Gaming",tag:"EDG",stage:"3rd Place",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2025-11-29",opp:"LEVIATÁN",tag:"LEV",stage:"Semifinal",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-11-29",opp:"Wolves Esports",tag:"WOL",stage:"Quarterfinal",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2025-11-29",opp:"DRX",tag:"DRX",stage:"Group Stage",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-  ]},{tournament:"Shanghai Esports Masters 2025",intl:false,matches:[
-    {date:"2025-12-04",opp:"EDward Gaming",tag:"EDG",stage:"Semifinal",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-  ]},{tournament:"Radiant Intl. Invitational 2025",intl:true,matches:[
-    {date:"2025-12-19",opp:"Nova Esports",tag:"NOVA",stage:"Day 2",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Pearl",b:11,o:13,r:"loss"}]},
-    {date:"2025-12-19",opp:"Paper Rex",tag:"PRX",stage:"Day 2",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Split",b:9,o:13,r:"loss"}]},
-    {date:"2025-12-18",opp:"G2 Esports",tag:"G2",stage:"Day 1",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Corrode",b:3,o:13,r:"loss"}]},
-    {date:"2025-12-18",opp:"Gen.G",tag:"GEN",stage:"Day 1",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Corrode",b:5,o:13,r:"loss"}]},
-  ]}],
-  "2026":[
-  {tournament:"VCT 2026: China Kickoff",intl:false,matches:[
-    {date:"2026-02-09",opp:"EDward Gaming",tag:"EDG",stage:"Lower Final",fmt:"Bo5",bs:1,os:3,r:"loss",maps:[{n:"Pearl",b:13,o:9,r:"win"},{n:"Haven",b:10,o:13,r:"loss"},{n:"Abyss",b:10,o:13,r:"loss"},{n:"Split",b:6,o:13,r:"loss"}]},
-    {date:"2026-02-08",opp:"Xi Lai Gaming",tag:"XLG",stage:"Middle Final",fmt:"Bo5",bs:2,os:3,r:"loss",maps:[{n:"Abyss",b:16,o:14,r:"win"},{n:"Bind",b:4,o:13,r:"loss"},{n:"Breeze",b:14,o:12,r:"win"},{n:"Pearl",b:11,o:13,r:"loss"},{n:"Split",b:4,o:13,r:"loss"}]},
-    {date:"2026-02-06",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"Mid Round 4",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Split",b:13,o:6,r:"win"},{n:"Abyss",b:13,o:2,r:"win"}]},
-    {date:"2026-02-04",opp:"EDward Gaming",tag:"EDG",stage:"Mid Round 3",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Abyss",b:13,o:7,r:"win"},{n:"Haven",b:9,o:13,r:"loss"},{n:"Breeze",b:13,o:5,r:"win"}]},
-    {date:"2026-01-30",opp:"Trace Esports",tag:"TE",stage:"Mid Round 2",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Abyss",b:13,o:10,r:"win"},{n:"Breeze",b:13,o:11,r:"win"}]},
-    {date:"2026-01-29",opp:"FunPlus Phoenix",tag:"FPX",stage:"Mid Round 1",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Pearl",b:13,o:9,r:"win"},{n:"Bind",b:17,o:15,r:"win"}]},
-    {date:"2026-01-25",opp:"All Gamers",tag:"AG",stage:"Upper Round 2",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Split",b:10,o:13,r:"loss"},{n:"Abyss",b:3,o:13,r:"loss"}]},
-  ]}],
   "2023":[
+  {tournament:"FGC 2023: Act 1 Qualifier",intl:false,matches:[
+    {date:"2023-02-23",opp:"Invictus Gaming",tag:"iG",stage:"Ro16",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Haven",b:13,o:5,r:"win"},{n:"Ascent",b:13,o:9,r:"win"}]},
+    {date:"2023-02-24",opp:"TYLOO",tag:"TYL",stage:"QF",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Icebox",b:13,o:11,r:"win"},{n:"Haven",b:5,o:13,r:"loss"},{n:"Ascent",b:10,o:13,r:"loss"}]},
+    {date:"2023-03-02",opp:"Oxyg3niOus",tag:"O3O",stage:"Ro16",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Icebox",b:13,o:6,r:"win"},{n:"Lotus",b:13,o:2,r:"win"}]},
+    {date:"2023-03-03",opp:"Royal Never Give Up",tag:"RNG",stage:"QF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Lotus",b:13,o:9,r:"win"},{n:"Haven",b:8,o:13,r:"loss"},{n:"Ascent",b:13,o:11,r:"win"}]},
+    {date:"2023-03-04",opp:"Rare Atom",tag:"RA",stage:"UBSF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Lotus",b:12,o:14,r:"loss"},{n:"Icebox",b:13,o:3,r:"win"},{n:"Ascent",b:13,o:10,r:"win"}]},
+    {date:"2023-03-05",opp:"Invincible Gaming",tag:"iNv",stage:"UF",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Lotus",b:13,o:7,r:"win"},{n:"Ascent",b:13,o:11,r:"win"}]}
+  ]},
+  {tournament:"FGC Invitational 2023: Act 1",intl:false,matches:[
+    {date:"2023-03-22",opp:"Shenzhen NTER",tag:"NTER",stage:"D1",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Lotus",b:3,o:13,r:"loss"},{n:"Pearl",b:4,o:13,r:"loss"}]},
+    {date:"2023-03-24",opp:"EDward Gaming",tag:"EDG",stage:"D3",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Lotus",b:6,o:13,r:"loss"},{n:"Haven",b:9,o:13,r:"loss"}]},
+    {date:"2023-03-26",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"D5",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Ascent",b:7,o:13,r:"loss"},{n:"Lotus",b:13,o:3,r:"win"},{n:"Haven",b:5,o:13,r:"loss"}]},
+    {date:"2023-03-30",opp:"Totoro Gaming",tag:"TTG",stage:"D7",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Split",b:3,o:13,r:"loss"},{n:"Lotus",b:13,o:7,r:"win"},{n:"Fracture",b:11,o:13,r:"loss"}]},
+    {date:"2023-04-02",opp:"TYLOO",tag:"TYL",stage:"D10",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Lotus",b:13,o:10,r:"win"},{n:"Haven",b:13,o:11,r:"win"}]}
+  ]},
+  {tournament:"FGC 2023: Act 2 Qualifier",intl:false,matches:[
+    {date:"2023-04-13",opp:"Four Angry Men",tag:"4AM",stage:"Ro16",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Haven",b:14,o:12,r:"win"},{n:"Fracture",b:13,o:7,r:"win"}]},
+    {date:"2023-04-14",opp:"Number One Player",tag:"NOP",stage:"QF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Icebox",b:12,o:14,r:"loss"},{n:"Fracture",b:13,o:4,r:"win"},{n:"Haven",b:13,o:5,r:"win"}]},
+    {date:"2023-04-15",opp:"Rare Atom",tag:"RA",stage:"UBSF",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Pearl",b:13,o:7,r:"win"},{n:"Icebox",b:7,o:13,r:"loss"},{n:"Haven",b:5,o:13,r:"loss"}]},
+    {date:"2023-04-16",opp:"JiJieHao",tag:"JJH",stage:"LR1",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Haven",b:12,o:14,r:"loss"},{n:"Pearl",b:5,o:13,r:"loss"}]},
+    {date:"2023-04-18",opp:"NewHappy Esports",tag:"NH",stage:"Ro16",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Lotus",b:13,o:4,r:"win"},{n:"Ascent",b:13,o:9,r:"win"}]},
+    {date:"2023-04-20",opp:"Kingzone",tag:"KZ",stage:"QF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Fracture",b:11,o:13,r:"loss"},{n:"Pearl",b:13,o:10,r:"win"},{n:"Icebox",b:13,o:5,r:"win"}]},
+    {date:"2023-04-22",opp:"Gank Gaming",tag:"GK",stage:"UBSF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Haven",b:15,o:17,r:"loss"},{n:"Fracture",b:13,o:4,r:"win"},{n:"Pearl",b:13,o:8,r:"win"}]},
+    {date:"2023-04-23",opp:"Royal Never Give Up",tag:"RNG",stage:"UF",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Haven",b:13,o:6,r:"win"},{n:"Pearl",b:13,o:11,r:"win"}]}
+  ]},
+  {tournament:"FGC Invitational 2023: Act 2",intl:false,matches:[
+    {date:"2023-05-03",opp:"Douyu Gaming",tag:"DYG",stage:"Opening (A)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Lotus",b:13,o:6,r:"win"},{n:"Bind",b:13,o:11,r:"win"}]},
+    {date:"2023-05-11",opp:"Attacking Soul Esports",tag:"ASE",stage:"Winner's (A)",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Split",b:13,o:8,r:"win"},{n:"Fracture",b:3,o:13,r:"loss"},{n:"Bind",b:13,o:4,r:"win"}]},
+    {date:"2023-05-17",opp:"Shenzhen NTER",tag:"NTER",stage:"QF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Ascent",b:14,o:16,r:"loss"},{n:"Split",b:13,o:11,r:"win"},{n:"Haven",b:13,o:10,r:"win"}]},
+    {date:"2023-05-18",opp:"FunPlus Phoenix",tag:"FPX",stage:"UBSF",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Pearl",b:13,o:11,r:"win"},{n:"Ascent",b:13,o:7,r:"win"}]},
+    {date:"2023-05-19",opp:"Attacking Soul Esports",tag:"ASE",stage:"UF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Lotus",b:9,o:13,r:"loss"},{n:"Ascent",b:13,o:10,r:"win"},{n:"Pearl",b:13,o:5,r:"win"}]},
+    {date:"2023-05-21",opp:"EDward Gaming",tag:"EDG",stage:"GF",fmt:"Bo5",bs:0,os:3,r:"loss",maps:[{n:"Haven",b:5,o:13,r:"loss"},{n:"Bind",b:5,o:13,r:"loss"},{n:"Ascent",b:11,o:13,r:"loss"}]}
+  ]},
+  {tournament:"VCT 2023: CN Champions Qualifier",intl:false,matches:[
+    {date:"2023-07-05",opp:"Monarch Effect",tag:"ME",stage:"UBQF",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Lotus",b:13,o:10,r:"win"},{n:"Haven",b:13,o:7,r:"win"}]},
+    {date:"2023-07-08",opp:"Trace Esports",tag:"TE",stage:"UBSF",fmt:"Bo5",bs:3,os:0,r:"win",maps:[{n:"Haven",b:13,o:10,r:"win"},{n:"Lotus",b:13,o:5,r:"win"},{n:"Split",b:13,o:2,r:"win"}]},
+    {date:"2023-07-13",opp:"EDward Gaming",tag:"EDG",stage:"UF",fmt:"Bo5",bs:0,os:3,r:"loss",maps:[{n:"Pearl",b:3,o:13,r:"loss"},{n:"Bind",b:10,o:13,r:"loss"},{n:"Split",b:4,o:13,r:"loss"}]},
+    {date:"2023-07-15",opp:"FunPlus Phoenix",tag:"FPX",stage:"LF",fmt:"Bo5",bs:3,os:2,r:"win",maps:[{n:"Lotus",b:11,o:13,r:"loss"},{n:"Bind",b:13,o:9,r:"win"},{n:"Pearl",b:9,o:13,r:"loss"},{n:"Split",b:13,o:6,r:"win"},{n:"Ascent",b:13,o:5,r:"win"}]},
+    {date:"2023-07-16",opp:"EDward Gaming",tag:"EDG",stage:"GF",fmt:"Bo5",bs:1,os:3,r:"loss",maps:[{n:"Split",b:6,o:13,r:"loss"},{n:"Fracture",b:4,o:13,r:"loss"},{n:"Bind",b:14,o:12,r:"win"},{n:"Haven",b:12,o:14,r:"loss"}]}
+  ]},
   {tournament:"VALORANT Champions 2023 (LA)",intl:true,matches:[
-    {date:"2023-08-19",opp:"EDward Gaming",tag:"EDG",stage:"Lower Round 1",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[]},
-    {date:"2023-08-18",opp:"DRX",tag:"DRX",stage:"Upper Quarterfinals",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2023-08-14",opp:"NRG Esports",tag:"NRG",stage:"Decider (C)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2023-08-10",opp:"Fnatic",tag:"FNC",stage:"Winner's (C)",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2023-08-09",opp:"NRG Esports",tag:"NRG",stage:"Opening (C)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-  ]},
-  {tournament:"Champions Tour 2023: Champions CQ",intl:false,matches:[
-    {date:"2023-07-16",opp:"EDward Gaming",tag:"EDG",stage:"Grand Final",fmt:"Bo5",bs:1,os:3,r:"loss",maps:[]},
-    {date:"2023-07-15",opp:"FunPlus Phoenix",tag:"FPX",stage:"Lower Final",fmt:"Bo5",bs:3,os:2,r:"win",maps:[]},
-    {date:"2023-07-13",opp:"EDward Gaming",tag:"EDG",stage:"Upper Final",fmt:"Bo5",bs:0,os:3,r:"loss",maps:[]},
-    {date:"2023-07-08",opp:"Trace Esports",tag:"TE",stage:"Playoffs",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2023-07-05",opp:"Mysterious Esports",tag:"ME",stage:"Playoffs",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-  ]},
-  {tournament:"China Evolution Series: Act 3",intl:false,matches:[
-    {date:"2023-11-21",opp:"Titan Esports Club",tag:"TEC",stage:"Group Stage",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2023-11-19",opp:"Attacking Soul Esports",tag:"ASE",stage:"Group Stage",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
-    {date:"2023-11-16",opp:"LGD Gaming",tag:"LGD",stage:"Group Stage",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2023-11-07",opp:"Royal Never Give Up",tag:"RNG",stage:"Group Stage",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2023-11-06",opp:"Nongshim Wolves Gaming",tag:"NWG",stage:"Group Stage",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-  ]},
-  {tournament:"China Evolution Series: Act 2",intl:false,matches:[
-    {date:"2023-10-24",opp:"Trace Esports",tag:"TE",stage:"Playoffs",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
-    {date:"2023-10-22",opp:"EDward Gaming",tag:"EDG",stage:"Playoffs",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2023-10-21",opp:"Trace Esports",tag:"TE",stage:"Playoffs",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2023-10-12",opp:"Royal Never Give Up",tag:"RNG",stage:"Group Stage",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-    {date:"2023-10-10",opp:"Ninjas in Pyjamas",tag:"NIP",stage:"Group Stage",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
+    {date:"2023-08-08",opp:"NRG Esports",tag:"NRG",stage:"Opening (C)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Lotus",b:14,o:12,r:"win"},{n:"Split",b:13,o:8,r:"win"}]},
+    {date:"2023-08-09",opp:"FNATIC",tag:"FNC",stage:"Winner's (C)",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Haven",b:2,o:13,r:"loss"},{n:"Lotus",b:8,o:13,r:"loss"}]},
+    {date:"2023-08-13",opp:"NRG Esports",tag:"NRG",stage:"Decider (C)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Bind",b:13,o:10,r:"win"},{n:"Ascent",b:13,o:5,r:"win"}]},
+    {date:"2023-08-17",opp:"DRX",tag:"DRX",stage:"UBQF",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Lotus",b:10,o:13,r:"loss"},{n:"Haven",b:9,o:13,r:"loss"}]},
+    {date:"2023-08-18",opp:"EDward Gaming",tag:"EDG",stage:"LR1",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Bind",b:4,o:13,r:"loss"},{n:"Split",b:15,o:13,r:"win"},{n:"Haven",b:10,o:13,r:"loss"}]}
   ]},
   {tournament:"China Evolution Series: Act 1",intl:false,matches:[
-    {date:"2023-09-28",opp:"Trace Esports",tag:"TE",stage:"Loser's Bracket",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
-    {date:"2023-09-26",opp:"FunPlus Phoenix",tag:"FPX",stage:"Winner's Bracket",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
-    {date:"2023-09-24",opp:"Weibo Gaming",tag:"WBG",stage:"Winner's Bracket",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
-  ]}]
+    {date:"2023-09-24",opp:"Weibo Gaming",tag:"WBG",stage:"UBQF",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Ascent",b:13,o:11,r:"win"},{n:"Bind",b:13,o:4,r:"win"}]},
+    {date:"2023-09-26",opp:"FunPlus Phoenix",tag:"FPX",stage:"UBSF",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Haven",b:8,o:13,r:"loss"},{n:"Bind",b:13,o:8,r:"win"},{n:"Sunset",b:10,o:13,r:"loss"}]},
+    {date:"2023-09-27",opp:"Trace Esports",tag:"TE",stage:"LR2",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Lotus",b:10,o:13,r:"loss"},{n:"Ascent",b:5,o:13,r:"loss"}]}
+  ]},
+  {tournament:"China Evolution Series: Act 2",intl:false,matches:[
+    {date:"2023-10-12",opp:"Royal Never Give Up",tag:"RNG",stage:"Winner's (A)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Split",b:13,o:5,r:"win"},{n:"Lotus",b:13,o:11,r:"win"}]},
+    {date:"2023-10-20",opp:"Trace Esports",tag:"TE",stage:"Opening (A)",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Lotus",b:13,o:6,r:"win"},{n:"Bind",b:7,o:13,r:"loss"},{n:"Breeze",b:13,o:4,r:"win"}]},
+    {date:"2023-10-22",opp:"EDward Gaming",tag:"EDG",stage:"Winner's (A)",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Breeze",b:12,o:14,r:"loss"},{n:"Split",b:5,o:13,r:"loss"}]},
+    {date:"2023-10-24",opp:"Trace Esports",tag:"TE",stage:"Decider (A)",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Ascent",b:12,o:14,r:"loss"},{n:"Split",b:4,o:13,r:"loss"}]}
+  ]},
+  {tournament:"China Evolution Series: Act 3",intl:false,matches:[
+    {date:"2023-11-02",opp:"VLG Esports",tag:"VLG",stage:"OQ-A SF",fmt:"Bo1",bs:1,os:0,r:"win",maps:[{n:"Lotus",b:13,o:2,r:"win"}]},
+    {date:"2023-11-03",opp:"Titan Esports Club",tag:"TEC",stage:"OQ-A GF",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[]},
+    {date:"2023-11-05",opp:"Night Wings Gaming",tag:"NWG",stage:"Opening (B)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Ascent",b:13,o:10,r:"win"},{n:"Haven",b:13,o:7,r:"win"}]},
+    {date:"2023-11-07",opp:"Royal Never Give Up",tag:"RNG",stage:"Winner's (B)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Haven",b:14,o:12,r:"win"},{n:"Ascent",b:13,o:4,r:"win"}]},
+    {date:"2023-11-16",opp:"LGD Gaming",tag:"LGD",stage:"UR1",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Haven",b:13,o:5,r:"win"},{n:"Lotus",b:13,o:0,r:"win"}]},
+    {date:"2023-11-18",opp:"Attacking Soul Esports",tag:"ASE",stage:"UBQF",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Lotus",b:2,o:13,r:"loss"},{n:"Split",b:13,o:10,r:"win"},{n:"Bind",b:10,o:13,r:"loss"}]},
+    {date:"2023-11-21",opp:"Titan Esports Club",tag:"TEC",stage:"LR1",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Lotus",b:8,o:13,r:"loss"},{n:"Breeze",b:12,o:14,r:"loss"}]}
+  ]}
+  ],
+  "2024":[
+  {tournament:"VCT 2024: China Kickoff",intl:false,matches:[
+    {date:"2024-02-23",opp:"Wolves Esports",tag:"WOL",stage:"Opening (C)",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Ascent",b:9,o:13,r:"loss"},{n:"Icebox",b:7,o:13,r:"loss"}]},
+    {date:"2024-02-26",opp:"Wolves Esports",tag:"WOL",stage:"Decider (C)",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Sunset",b:13,o:9,r:"win"},{n:"Icebox",b:13,o:10,r:"win"}]},
+    {date:"2024-02-27",opp:"Titan Esports Club",tag:"TEC",stage:"Round-Robin",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Lotus",b:13,o:3,r:"win"},{n:"Ascent",b:13,o:8,r:"win"}]},
+    {date:"2024-02-27",opp:"Trace Esports",tag:"TE",stage:"Round-Robin",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Lotus",b:13,o:11,r:"win"},{n:"Sunset",b:13,o:15,r:"loss"},{n:"Bind",b:12,o:14,r:"loss"}]}
+  ]},
+  {tournament:"VCT 2024: China Stage 1",intl:false,matches:[
+    {date:"2024-04-05",opp:"TYLOO",tag:"TYL",stage:"W1",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Bind",b:3,o:13,r:"loss"},{n:"Icebox",b:13,o:6,r:"win"},{n:"Lotus",b:13,o:6,r:"win"}]},
+    {date:"2024-04-13",opp:"Trace Esports",tag:"TE",stage:"W2",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Split",b:13,o:11,r:"win"},{n:"Breeze",b:7,o:13,r:"loss"},{n:"Bind",b:7,o:13,r:"loss"}]},
+    {date:"2024-04-20",opp:"All Gamers",tag:"AG",stage:"W3",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Lotus",b:11,o:13,r:"loss"},{n:"Bind",b:7,o:13,r:"loss"}]},
+    {date:"2024-04-26",opp:"Titan Esports Club",tag:"TEC",stage:"W4",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Sunset",b:11,o:13,r:"loss"},{n:"Bind",b:13,o:8,r:"win"},{n:"Icebox",b:6,o:13,r:"loss"}]},
+    {date:"2024-04-28",opp:"JDG Esports",tag:"JDG",stage:"W4",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Icebox",b:13,o:8,r:"win"},{n:"Lotus",b:13,o:10,r:"win"}]},
+    {date:"2024-05-04",opp:"FunPlus Phoenix",tag:"FPX",stage:"W5",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Icebox",b:2,o:13,r:"loss"},{n:"Lotus",b:6,o:13,r:"loss"}]}
+  ]},
+  {tournament:"VCT 2024: China Stage 2",intl:false,matches:[
+    {date:"2024-06-16",opp:"Wolves Esports",tag:"WOL",stage:"W1",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Sunset",b:13,o:5,r:"win"},{n:"Bind",b:13,o:7,r:"win"}]},
+    {date:"2024-06-23",opp:"Nova Esports",tag:"NOVA",stage:"W2",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Split",b:14,o:16,r:"loss"},{n:"Bind",b:13,o:9,r:"win"},{n:"Ascent",b:13,o:6,r:"win"}]},
+    {date:"2024-06-30",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"W3",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Lotus",b:13,o:11,r:"win"},{n:"Ascent",b:13,o:11,r:"win"}]},
+    {date:"2024-07-06",opp:"EDward Gaming",tag:"EDG",stage:"W4",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Icebox",b:11,o:13,r:"loss"},{n:"Haven",b:8,o:13,r:"loss"}]},
+    {date:"2024-07-16",opp:"JDG Esports",tag:"JDG",stage:"KO",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Sunset",b:13,o:9,r:"win"},{n:"Icebox",b:13,o:7,r:"win"}]},
+    {date:"2024-07-17",opp:"EDward Gaming",tag:"EDG",stage:"UBSF",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Sunset",b:5,o:13,r:"loss"},{n:"Bind",b:13,o:7,r:"win"},{n:"Lotus",b:10,o:13,r:"loss"}]},
+    {date:"2024-07-18",opp:"FunPlus Phoenix",tag:"FPX",stage:"LR1",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Ascent",b:3,o:13,r:"loss"},{n:"Icebox",b:14,o:12,r:"win"},{n:"Lotus",b:10,o:13,r:"loss"}]}
+  ]},
+  {tournament:"VALORANT Champions 2024 (Seoul)",intl:true,matches:[
+    {date:"2024-08-02",opp:"FNATIC",tag:"FNC",stage:"Opening (A)",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Bind",b:9,o:13,r:"loss"},{n:"Lotus",b:4,o:13,r:"loss"}]},
+    {date:"2024-08-08",opp:"KRÜ Esports",tag:"KRÜ",stage:"Elim (A)",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Lotus",b:9,o:13,r:"loss"},{n:"Icebox",b:4,o:13,r:"loss"}]}
+  ]},
+  {tournament:"FGC Invitational 2024",intl:false,matches:[
+    {date:"2024-11-01",opp:"Xi Lai Gaming",tag:"XLG",stage:"UBQF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Ascent",b:10,o:13,r:"loss"},{n:"Pearl",b:13,o:6,r:"win"},{n:"Bind",b:15,o:13,r:"win"}]},
+    {date:"2024-11-06",opp:"Nova Esports",tag:"NOVA",stage:"UBSF",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Sunset",b:13,o:10,r:"win"},{n:"Pearl",b:13,o:9,r:"win"}]},
+    {date:"2024-11-08",opp:"Wolves Esports",tag:"WOL",stage:"UBF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Split",b:9,o:13,r:"loss"},{n:"Bind",b:13,o:7,r:"win"},{n:"Ascent",b:13,o:6,r:"win"}]},
+    {date:"2024-11-10",opp:"Wolves Esports",tag:"WOL",stage:"GF",fmt:"Bo5",bs:3,os:1,r:"win",maps:[{n:"Sunset",b:13,o:5,r:"win"},{n:"Abyss",b:13,o:11,r:"win"},{n:"Bind",b:9,o:13,r:"loss"},{n:"Ascent",b:16,o:14,r:"win"}]}
+  ]},
+  {tournament:"Radiant Asia Invitational 2024",intl:true,matches:[
+    {date:"2024-11-22",opp:"DRX",tag:"DRX",stage:"R1",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Sunset",b:11,o:13,r:"loss"},{n:"Haven",b:2,o:13,r:"loss"}]},
+    {date:"2024-11-24",opp:"Trace Esports",tag:"TE",stage:"R2 (0-1)",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Abyss",b:9,o:13,r:"loss"},{n:"Ascent",b:13,o:4,r:"win"},{n:"Sunset",b:6,o:13,r:"loss"}]}
+  ]},
+  {tournament:"SOOP Valorant League 2024",intl:true,matches:[
+    {date:"2024-12-11",opp:"DRX",tag:"DRX",stage:"Opening (B)",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Bind",b:6,o:13,r:"loss"},{n:"Abyss",b:13,o:9,r:"win"},{n:"Pearl",b:9,o:13,r:"loss"}]},
+    {date:"2024-12-13",opp:"NRG",tag:"NRG",stage:"Elim (B)",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Split",b:11,o:13,r:"loss"},{n:"Ascent",b:13,o:10,r:"win"},{n:"Abyss",b:7,o:13,r:"loss"}]}
+  ]}
+  ],
+  "2025":[
+  {tournament:"VCT 2025: China Kickoff",intl:false,matches:[
+    {date:"2025-01-16",opp:"Xi Lai Gaming",tag:"XLG",stage:"UBQF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Haven",b:11,o:13,r:"loss"},{n:"Lotus",b:13,o:11,r:"win"},{n:"Abyss",b:13,o:11,r:"win"}]},
+    {date:"2025-01-20",opp:"FunPlus Phoenix",tag:"FPX",stage:"UBSF",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Bind",b:13,o:11,r:"win"},{n:"Lotus",b:13,o:9,r:"win"}]},
+    {date:"2025-01-23",opp:"Trace Esports",tag:"TE",stage:"UBF",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Bind",b:8,o:13,r:"loss"},{n:"Haven",b:13,o:10,r:"win"},{n:"Lotus",b:6,o:13,r:"loss"}]},
+    {date:"2025-01-24",opp:"EDward Gaming",tag:"EDG",stage:"LBF",fmt:"Bo5",bs:0,os:3,r:"loss",maps:[{n:"Pearl",b:12,o:14,r:"loss"},{n:"Haven",b:6,o:13,r:"loss"},{n:"Lotus",b:5,o:13,r:"loss"}]}
+  ]},
+  {tournament:"China Evolution Series: Act 1",intl:false,matches:[
+    {date:"2025-02-10",opp:"TYLOO",tag:"TYL",stage:"QF",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Abyss",b:13,o:9,r:"win"},{n:"Pearl",b:19,o:17,r:"win"}]},
+    {date:"2025-02-14",opp:"Nova Esports",tag:"NOVA",stage:"SF",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Split",b:8,o:13,r:"loss"},{n:"Pearl",b:4,o:13,r:"loss"}]},
+    {date:"2025-02-15",opp:"JDG Esports",tag:"JDG",stage:"CF",fmt:"Bo5",bs:3,os:0,r:"win",maps:[{n:"Abyss",b:13,o:9,r:"win"},{n:"Pearl",b:13,o:3,r:"win"},{n:"Lotus",b:13,o:11,r:"win"}]}
+  ]},
+  {tournament:"VCT 2025: China Stage 1",intl:false,matches:[
+    {date:"2025-03-13",opp:"Xi Lai Gaming",tag:"XLG",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
+    {date:"2025-03-23",opp:"JDG Esports",tag:"JDG",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
+    {date:"2025-03-30",opp:"All Gamers",tag:"AG",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[]},
+    {date:"2025-04-04",opp:"Wolves Esports",tag:"WOL",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[]},
+    {date:"2025-04-12",opp:"Trace Esports",tag:"TE",stage:"UB Quarter",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
+    {date:"2025-04-19",opp:"Wolves Esports",tag:"WOL",stage:"UB Semi",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[]},
+    {date:"2025-04-20",opp:"Trace Esports",tag:"TE",stage:"LR2",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Fracture",b:13,o:8,r:"win"},{n:"Pearl",b:13,o:6,r:"win"}]},
+    {date:"2025-05-02",opp:"EDward Gaming",tag:"EDG",stage:"LR3",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Fracture",b:8,o:13,r:"loss"},{n:"Icebox",b:13,o:8,r:"win"},{n:"Pearl",b:13,o:11,r:"win"}]},
+    {date:"2025-05-03",opp:"Wolves Esports",tag:"WOL",stage:"LBF",fmt:"Bo5",bs:3,os:0,r:"win",maps:[{n:"Pearl",b:13,o:9,r:"win"},{n:"Lotus",b:13,o:11,r:"win"},{n:"Icebox",b:13,o:7,r:"win"}]},
+    {date:"2025-05-04",opp:"Xi Lai Gaming",tag:"XLG",stage:"GF",fmt:"Bo5",bs:1,os:3,r:"loss",maps:[{n:"Fracture",b:13,o:15,r:"loss"},{n:"Lotus",b:10,o:13,r:"loss"},{n:"Pearl",b:13,o:8,r:"win"},{n:"Haven",b:12,o:14,r:"loss"}]}
+  ]},
+  {tournament:"CN EVO 25: Act 2 X ACL",intl:false,matches:[
+    {date:"2025-05-08",opp:"Titan Esports Club",tag:"TEC",stage:"Ro12",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Haven",b:2,o:13,r:"loss"},{n:"Icebox",b:4,o:13,r:"loss"}]}
+  ]},
+  {tournament:"HERO Asian Champions League 2025",intl:true,matches:[
+    {date:"2025-05-14",opp:"DRX",tag:"DRX",stage:"LR2",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Haven",b:1,o:13,r:"loss"},{n:"Icebox",b:12,o:14,r:"loss"}]},
+    {date:"2025-05-15",opp:"Trace Esports",tag:"TE",stage:"LR2",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Pearl",b:13,o:9,r:"win"},{n:"Split",b:13,o:4,r:"win"}]},
+    {date:"2025-05-16",opp:"DRX",tag:"DRX",stage:"LR3",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Sunset",b:10,o:13,r:"loss"},{n:"Lotus",b:5,o:13,r:"loss"}]}
+  ]},
+  {tournament:"CN Nationals S4",intl:false,matches:[
+    {date:"2025-06-14",opp:"X-GAME",tag:"X.Game",stage:"Ro16",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Split",b:13,o:3,r:"win"},{n:"Lotus",b:4,o:13,r:"loss"}]},
+    {date:"2025-06-15",opp:"Rare Atom",tag:"RA",stage:"QF",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Split",b:4,o:13,r:"loss"},{n:"Lotus",b:11,o:13,r:"loss"}]}
+  ]},
+  {tournament:"VCT Masters Toronto 2025",intl:true,matches:[
+    {date:"2025-06-07",opp:"Team Liquid",tag:"TL",stage:"R1",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Icebox",b:13,o:10,r:"win"},{n:"Haven",b:14,o:16,r:"loss"},{n:"Sunset",b:13,o:10,r:"win"}]},
+    {date:"2025-06-09",opp:"Sentinels",tag:"SEN",stage:"R2 (1-0)",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Icebox",b:13,o:9,r:"win"},{n:"Sunset",b:5,o:13,r:"loss"},{n:"Lotus",b:9,o:13,r:"loss"}]},
+    {date:"2025-06-11",opp:"Wolves Esports",tag:"WOL",stage:"R3 (1-1)",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Split",b:10,o:13,r:"loss"},{n:"Ascent",b:5,o:13,r:"loss"}]}
+  ]},
+  {tournament:"Esports World Cup 2025",intl:true,matches:[
+    {date:"2025-07-08",opp:"Paper Rex",tag:"PRX",stage:"Opening (A)",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Lotus",b:14,o:16,r:"loss"}]},
+    {date:"2025-07-09",opp:"G2 Esports",tag:"G2",stage:"Elim (A)",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Sunset",b:13,o:3,r:"win"},{n:"Pearl",b:4,o:13,r:"loss"},{n:"Icebox",b:13,o:11,r:"win"}]},
+    {date:"2025-07-10",opp:"Karmine Corp",tag:"KC",stage:"Decider (A)",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Icebox",b:5,o:13,r:"loss"},{n:"Lotus",b:13,o:11,r:"win"},{n:"Sunset",b:9,o:13,r:"loss"}]}
+  ]},
+  {tournament:"VCT 2025: China Stage 2",intl:false,matches:[
+    {date:"2025-07-04",opp:"TYLOO",tag:"TYL",stage:"W1",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Bind",b:13,o:5,r:"win"},{n:"Lotus",b:13,o:9,r:"win"}]},
+    {date:"2025-07-18",opp:"JDG Esports",tag:"JDG",stage:"W2",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Sunset",b:13,o:7,r:"win"},{n:"Ascent",b:13,o:15,r:"loss"},{n:"Icebox",b:13,o:4,r:"win"}]},
+    {date:"2025-07-23",opp:"Titan Esports Club",tag:"TEC",stage:"W3",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Bind",b:13,o:9,r:"win"},{n:"Ascent",b:13,o:8,r:"win"}]},
+    {date:"2025-07-26",opp:"Trace Esports",tag:"TE",stage:"W3",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Haven",b:13,o:6,r:"win"},{n:"Icebox",b:13,o:15,r:"loss"},{n:"Ascent",b:6,o:13,r:"loss"}]},
+    {date:"2025-08-03",opp:"EDward Gaming",tag:"EDG",stage:"W4",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Lotus",b:13,o:6,r:"win"},{n:"Sunset",b:15,o:13,r:"win"}]},
+    {date:"2025-08-20",opp:"TYLOO",tag:"TYL",stage:"UBSF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Bind",b:13,o:7,r:"win"},{n:"Icebox",b:9,o:13,r:"loss"},{n:"Lotus",b:13,o:5,r:"win"}]},
+    {date:"2025-08-22",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"UBF",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Haven",b:10,o:13,r:"loss"},{n:"Lotus",b:13,o:9,r:"win"},{n:"Sunset",b:11,o:13,r:"loss"}]},
+    {date:"2025-08-23",opp:"EDward Gaming",tag:"EDG",stage:"LBF",fmt:"Bo5",bs:3,os:1,r:"win",maps:[{n:"Bind",b:12,o:14,r:"loss"},{n:"Haven",b:13,o:8,r:"win"},{n:"Lotus",b:13,o:10,r:"win"},{n:"Ascent",b:13,o:7,r:"win"}]},
+    {date:"2025-08-24",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"GF",fmt:"Bo5",bs:3,os:1,r:"win",maps:[{n:"Sunset",b:2,o:13,r:"loss"},{n:"Haven",b:13,o:8,r:"win"},{n:"Corrode",b:13,o:10,r:"win"},{n:"Lotus",b:13,o:9,r:"win"}]}
+  ]},
+  {tournament:"CN EVO 25: Act 3",intl:false,matches:[
+    {date:"2025-08-29",opp:"Wolves Esports",tag:"WOL",stage:"Ro12",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Abyss",b:13,o:11,r:"win"},{n:"Corrode",b:9,o:13,r:"loss"},{n:"Ascent",b:7,o:13,r:"loss"}]}
+  ]},
+  {tournament:"VALORANT Champions 2025 (Paris)",intl:true,matches:[
+    {date:"2025-09-15",opp:"MIBR",tag:"MIBR",stage:"Opening (B)",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Haven",b:2,o:13,r:"loss"},{n:"Corrode",b:9,o:13,r:"loss"}]},
+    {date:"2025-09-20",opp:"Rex Regum Qeon",tag:"RRQ",stage:"Elim (B)",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Sunset",b:13,o:7,r:"win"},{n:"Lotus",b:8,o:13,r:"loss"},{n:"Abyss",b:4,o:13,r:"loss"}]}
+  ]},
+  {tournament:"CEFSCC 2025",intl:true,matches:[
+    {date:"2025-11-29",opp:"DRX",tag:"DRX",stage:"(B)",fmt:"Bo1",bs:1,os:0,r:"win",maps:[{n:"Split",b:13,o:11,r:"win"}]},
+    {date:"2025-11-29",opp:"Wolves Esports",tag:"WOL",stage:"(B)",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Pearl",b:11,o:13,r:"loss"}]},
+    {date:"2025-11-29",opp:"LEVIATÁN",tag:"LEV",stage:"SF",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Split",b:15,o:17,r:"loss"},{n:"Corrode",b:5,o:13,r:"loss"}]},
+    {date:"2025-11-30",opp:"EDward Gaming",tag:"EDG",stage:"CF",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Pearl",b:15,o:13,r:"win"},{n:"Split",b:4,o:13,r:"loss"},{n:"Bind",b:15,o:13,r:"win"}]}
+  ]},
+  {tournament:"Shanghai Esports Masters 2025",intl:false,matches:[
+    {date:"2025-12-04",opp:"EDward Gaming",tag:"EDG",stage:"SF",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Pearl",b:7,o:13,r:"loss"},{n:"Haven",b:4,o:13,r:"loss"}]}
+  ]},
+  {tournament:"Radiant Intl. Invitational 2025",intl:true,matches:[
+    {date:"2025-12-18",opp:"Gen.G",tag:"GEN",stage:"D1",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Corrode",b:5,o:13,r:"loss"}]},
+    {date:"2025-12-18",opp:"G2 Esports",tag:"G2",stage:"D1",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Corrode",b:3,o:13,r:"loss"}]},
+    {date:"2025-12-19",opp:"Paper Rex",tag:"PRX",stage:"D2",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Split",b:9,o:13,r:"loss"}]},
+    {date:"2025-12-19",opp:"Nova Esports",tag:"NOVA",stage:"D2",fmt:"Bo1",bs:0,os:1,r:"loss",maps:[{n:"Pearl",b:11,o:13,r:"loss"}]}
+  ]}
+  ],
+  "2026":[
+  {tournament:"VCT 2026: China Kickoff",intl:false,matches:[
+    {date:"2026-01-25",opp:"All Gamers",tag:"AG",stage:"UR2",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Split",b:10,o:13,r:"loss"},{n:"Abyss",b:3,o:13,r:"loss"}]},
+    {date:"2026-01-29",opp:"FunPlus Phoenix",tag:"FPX",stage:"MR1",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Pearl",b:13,o:9,r:"win"},{n:"Bind",b:17,o:15,r:"win"}]},
+    {date:"2026-01-30",opp:"Trace Esports",tag:"TE",stage:"MR2",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Abyss",b:13,o:10,r:"win"},{n:"Breeze",b:13,o:11,r:"win"}]},
+    {date:"2026-02-04",opp:"EDward Gaming",tag:"EDG",stage:"MR3",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Abyss",b:13,o:7,r:"win"},{n:"Haven",b:9,o:13,r:"loss"},{n:"Breeze",b:13,o:5,r:"win"}]},
+    {date:"2026-02-06",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"MR4",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Split",b:13,o:6,r:"win"},{n:"Abyss",b:13,o:2,r:"win"}]},
+    {date:"2026-02-08",opp:"Xi Lai Gaming",tag:"XLG",stage:"MBF",fmt:"Bo5",bs:2,os:3,r:"loss",maps:[{n:"Abyss",b:16,o:14,r:"win"},{n:"Bind",b:4,o:13,r:"loss"},{n:"Breeze",b:14,o:12,r:"win"},{n:"Pearl",b:11,o:13,r:"loss"},{n:"Split",b:4,o:13,r:"loss"}]},
+    {date:"2026-02-09",opp:"EDward Gaming",tag:"EDG",stage:"LBF",fmt:"Bo5",bs:1,os:3,r:"loss",maps:[{n:"Pearl",b:13,o:9,r:"win"},{n:"Haven",b:10,o:13,r:"loss"},{n:"Abyss",b:10,o:13,r:"loss"},{n:"Split",b:6,o:13,r:"loss"}]}
+  ]}
+  ]
 };
 
 let allData=JSON.parse(JSON.stringify(baselineData)),activeYear=String(new Date().getFullYear());
