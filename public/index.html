@@ -518,17 +518,28 @@ const LOGOS={
   GEN:VE+"1678453609404_GenG_logo_200407-051.png",
   NS:VE+"1674219422693_NS_.png",
   DFM:VE+"1675669923678_190px-DetonatioN_FocusMe_2022_darkmode1.png",
-  // Other teams (SVG text logos)
-  KRÜ:'',LGD:'',RNG:'',WBG:'',NIP:'',ASE:'',NWG:'',ME:'',
+  // Other teams (Liquipedia Commons direct)
 };
+const LC=f=>`https://liquipedia.net/commons/Special:Redirect/file/${f}?width=96`;
+LOGOS['KRÜ']=LC('KRU_Esports_allmode.png');
+LOGOS['LGD']=LC('LGD_Gaming_allmode.png');
+LOGOS['RNG']=LC('Royal_Never_Give_Up_allmode.png');
+LOGOS['WBG']=LC('Weibo_Gaming_allmode.png');
+LOGOS['NIP']=LC('Ninjas_in_Pyjamas_allmode.png');
+LOGOS['ASE']=LC('All_Spark_Esports_allmode.png');
+LOGOS['NWG']=LC('Nongshim_World_Gate_allmode.png');
+LOGOS['ME']=LC('Mystic_Esports_allmode.png');
 // Generate SVG text logo for teams without images
 function _tsvg(tag,bg='#333',fg='#fff'){
   const sz=tag.length>3?10:12;
   return`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" rx="8" fill="${bg}"/><text x="20" y="24" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="${sz}" fill="${fg}">${tag}</text></svg>`)}`;
 }
-// Fill empty logos with SVG
+// Fill empty logos with SVG initially, then try Liquipedia in background
 const _LOGO_COLORS={KRÜ:'#5b21b6',LGD:'#dc2626',RNG:'#eab308',WBG:'#3b82f6',NIP:'#f59e0b',ASE:'#10b981',NWG:'#6366f1',ME:'#ec4899',Wolves:'#f97316',TBD:'#555'};
-Object.keys(LOGOS).forEach(k=>{if(!LOGOS[k])LOGOS[k]=_tsvg(k,_LOGO_COLORS[k]||'#333')});
+const _svgFallbackTeams=[];
+Object.keys(LOGOS).forEach(k=>{if(!LOGOS[k]){LOGOS[k]=_tsvg(k,_LOGO_COLORS[k]||'#333');_svgFallbackTeams.push(k)}});
+// Queue Liquipedia logo fetch for SVG-only teams after page loads
+setTimeout(()=>{_svgFallbackTeams.forEach(t=>fetchTeamLogo(t))},5000);
 function L(tag,sz=''){const u=LOGOS[tag]||logoCache[tag];if(u&&u!=='pending'&&u!==false)return`<img src="${u}" class="tlogo ${sz}" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph ${sz}\\'>${tag[0]}</span>'">`;if(!LOGOS[tag]&&!logoCache[tag])fetchTeamLogo(tag);return`<span class="tlogo-ph ${sz}">${tag[0]||'?'}</span>`}
 
 // ===== RIOT ESPORTS API (valorantesports.com - free, no CORS!) =====
@@ -1324,9 +1335,57 @@ function showVodNotification(count){
 
 // ===== 3) AUTO TEAM LOGO (이미 43개 하드코딩, 미지 팀은 이니셜 표시) =====
 const logoCache={};
+const _logoQueue=[];
+let _logoFetching=false;
+
 function fetchTeamLogo(tag){
-  // 이미 하드코딩된 43개 팀으로 충분. 모르는 팀은 이니셜 placeholder.
-  logoCache[tag]=false;
+  if(logoCache[tag]||logoCache[tag]==='pending')return;
+  logoCache[tag]='pending';
+  _logoQueue.push(tag);
+  if(!_logoFetching)_processLogoQueue();
+}
+
+async function _processLogoQueue(){
+  _logoFetching=true;
+  while(_logoQueue.length){
+    const tag=_logoQueue.shift();
+    // Map tags to Liquipedia file name prefixes
+    const fileMap={BLG:'Bilibili_Gaming',EDG:'EDward_Gaming',FPX:'FunPlus_Phoenix',
+      DRG:'Dragon_Ranger_Gaming',WOL:'Wolves_Esports',TE:'Trace_Esports',TYL:'Tyloo',
+      NOVA:'Nova_Esports',TEC:'Titan_Esports_Club',AG:'AG_Esports',JDG:'JD_Gaming',
+      G2:'G2_Esports',SEN:'Sentinels',NRG:'NRG',MIBR:'MIBR',C9:'Cloud9',
+      EG:'Evil_Geniuses',LOUD:'LOUD',FURIA:'FURIA_Esports',LEV:'Leviatan',
+      TL:'Team_Liquid',FNC:'Fnatic',KC:'Karmine_Corp',NAVI:'Natus_Vincere',
+      VIT:'Team_Vitality',PRX:'Paper_Rex',T1:'T1',DRX:'DRX',GEN:'Gen.G',
+      RRQ:'Rex_Regum_Qeon',NS:'Nongshim_RedForce',DFM:'DetonatioN_FocusMe',
+      KRÜ:'KRU_Esports',LGD:'LGD_Gaming',RNG:'Royal_Never_Give_Up',
+      WBG:'Weibo_Gaming',NIP:'Ninjas_in_Pyjamas',ASE:'All_Spark_Esports',
+      NWG:'Nongshim_World_Gate','100T':'100_Thieves',ME:'Mystic_Esports',
+      XLG:'XLGA',TITAN:'Titan_Esports_Club',Wolves:'Wolves_Esports'};
+    const prefix=fileMap[tag]||tag.replace(/\s+/g,'_');
+
+    // Try direct image load (no CORS needed for <img>)
+    const suffixes=['_allmode.png','_darkmode.png','_full_allmode.png','_full_darkmode.png'];
+    let found=false;
+    for(const sfx of suffixes){
+      const url=LC(`${prefix}${sfx}`);
+      const ok=await new Promise(r=>{const img=new Image();img.onload=()=>r(true);img.onerror=()=>r(false);img.src=url;setTimeout(()=>r(false),5000)});
+      if(ok){
+        logoCache[tag]=url;
+        LOGOS[tag]=url;
+        document.querySelectorAll(`img.tlogo[alt="${tag}"],span.tlogo-ph`).forEach(el=>{
+          if(el.tagName==='SPAN'&&el.textContent===tag[0])
+            el.outerHTML=`<img src="${url}" class="tlogo ${el.classList.contains('big')?'big':''}" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph\\'>${tag[0]}</span>'">`; 
+          else if(el.tagName==='IMG'&&el.alt===tag&&el.src.startsWith('data:'))el.src=url;
+        });
+        console.log(`🖼️ 로고 자동: ${tag} ← Liquipedia`);
+        found=true;break;
+      }
+    }
+    if(!found){logoCache[tag]=_tsvg(tag,_LOGO_COLORS[tag]||'#333');LOGOS[tag]=logoCache[tag]}
+    await new Promise(r=>setTimeout(r,1000));
+  }
+  _logoFetching=false;
 }
 
 // ===== LOCAL STATS: MAP WIN RATES + H2H =====
