@@ -2047,10 +2047,132 @@ items:[
 ],link:'https://valorant.fandom.com/wiki/VCT_x_BLG_Capsule'}
 ];
 
-function fetchSkinData(){
-  blgSkinData=[...STATIC_SKINS];
+async function fetchSkinData(){
+  blgSkinData=[...STATIC_SKINS]; // fallback
   skinSyncStatus='static';
   renderSkins();
+
+  // Auto-detect new skins from Fandom Wiki API
+  try{
+    const FANDOM='https://valorant.fandom.com/api.php';
+    const urlMap={};
+
+    // Method 1: Get images from VCT_x_BLG_Capsule page
+    const pgData=await proxyFetchJSON(`${FANDOM}?action=query&titles=VCT_x_BLG_Capsule&prop=images&imlimit=100&format=json`);
+    let blgImgs=[];
+    if(pgData?.query?.pages){
+      const pages=Object.values(pgData.query.pages);
+      if(pages[0]?.images) blgImgs=pages[0].images.map(i=>i.title).filter(t=>t.includes('BLG'));
+    }
+
+    // Method 2: Also search allimages for VCT*BLG (catches future skins not yet on the page)
+    await new Promise(r=>setTimeout(r,500));
+    const curYr=String(new Date().getFullYear()).substring(2); // "26","27"...
+    const prefixes=['VCT_x_BLG','VCT'+curYr+'_x_BLG','Bundle_VCT'+curYr+'_x_BLG'];
+    for(const pfx of prefixes){
+      const aiData=await proxyFetchJSON(`${FANDOM}?action=query&list=allimages&aiprefix=${encodeURIComponent(pfx)}&ailimit=20&format=json`);
+      if(aiData?.query?.allimages){
+        aiData.query.allimages.forEach(img=>{
+          const title='File:'+img.name;
+          if(title.includes('BLG')&&!blgImgs.includes(title)){blgImgs.push(title);urlMap[img.name]=img.url;}
+        });
+      }
+      await new Promise(r=>setTimeout(r,300));
+    }
+    // Also check next year
+    const nextYr=String(Number(curYr)+1);
+    const aiNext=await proxyFetchJSON(`${FANDOM}?action=query&list=allimages&aiprefix=VCT${nextYr}_x_BLG&ailimit=20&format=json`);
+    if(aiNext?.query?.allimages){
+      aiNext.query.allimages.forEach(img=>{
+        const title='File:'+img.name;
+        if(!blgImgs.includes(title)){blgImgs.push(title);urlMap[img.name]=img.url;}
+      });
+    }
+
+    if(!blgImgs.length)return;
+
+    // Get actual URLs for page-sourced images (allimages already have URLs)
+    const needUrls=blgImgs.filter(t=>{const fn=t.replace('File:','');return!urlMap[fn]});
+    for(let i=0;i<needUrls.length;i+=50){
+      const batch=needUrls.slice(i,i+50).join('|');
+      await new Promise(r=>setTimeout(r,500));
+      const imgData=await proxyFetchJSON(`${FANDOM}?action=query&titles=${encodeURIComponent(batch)}&prop=imageinfo&iiprop=url&format=json`);
+      if(!imgData?.query?.pages)continue;
+      Object.values(imgData.query.pages).forEach(p=>{
+        if(p.imageinfo&&p.imageinfo[0]?.url){
+          urlMap[p.title.replace('File:','')]=p.imageinfo[0].url;
+        }
+      });
+    }
+
+    console.log(`📡 Fandom Wiki: ${Object.keys(urlMap).length}개 BLG 이미지 발견`);
+
+    // Group by year
+    const yearGroups={};
+    const existingYears=new Set(STATIC_SKINS.map(s=>s.year));
+
+    Object.entries(urlMap).forEach(([fname,url])=>{
+      let year=null;
+      const yrMatch=fname.match(/VCT(\d{2})_x_BLG/i);
+      if(yrMatch) year='20'+yrMatch[1];
+      else if(fname.match(/^(VCT|Bundle_VCT)_x_BLG/i)) year='2024';
+      if(!year)return;
+
+      if(!yearGroups[year])yearGroups[year]={classic:null,bundle:null,card:null,spray:null,buddy:null,banner:null};
+      const fl=fname.toLowerCase();
+      if(fl.includes('bundle'))yearGroups[year].bundle=url;
+      else if(fl.includes('card'))yearGroups[year].card=url;
+      else if(fl.includes('spray'))yearGroups[year].spray=url;
+      else if(fl.includes('buddy'))yearGroups[year].buddy=url;
+      else if(fl.includes('banner'))yearGroups[year].banner=url;
+      else if(fl.includes('classic'))yearGroups[year].classic=url;
+    });
+
+    // Build new entries for years not in STATIC_SKINS
+    let newCount=0;
+    Object.entries(yearGroups).forEach(([yr,imgs])=>{
+      if(existingYears.has(yr))return;
+      if(!imgs.classic)return;
+
+      const prefix=yr==='2024'?'VCT':'VCT'+yr.substring(2);
+      const entry={
+        year:yr,
+        name:`${prefix} x BLG 클래식`,
+        img:imgs.classic,
+        bundleImg:imgs.bundle||imgs.classic,
+        items:[{label:'🔫 Classic 스킨',img:imgs.classic}],
+        link:'https://valorant.fandom.com/wiki/VCT_x_BLG_Capsule',
+        _auto:true
+      };
+      if(imgs.card)entry.items.push({label:'🃏 플레이어 카드',img:imgs.card});
+      if(imgs.spray)entry.items.push({label:'💨 스프레이',img:imgs.spray});
+      if(imgs.buddy)entry.items.push({label:'🔗 건 버디',img:imgs.buddy});
+      if(imgs.banner)entry.items.push({label:'🏳️ 배너',img:imgs.banner});
+
+      blgSkinData.push(entry);
+      newCount++;
+      console.log(`✅ 신규 스킨 자동 감지: ${yr} (${entry.items.length}개 아이템)`);
+    });
+
+    // Update existing entries with fresh URLs
+    blgSkinData.forEach(s=>{
+      const g=yearGroups[s.year];
+      if(!g)return;
+      if(g.classic)s.img=g.classic;
+      if(g.bundle)s.bundleImg=g.bundle;
+      // Update item URLs too
+      s.items.forEach(item=>{
+        const ll=item.label.toLowerCase();
+        if(ll.includes('classic')&&g.classic)item.img=g.classic;
+        else if(ll.includes('카드')&&g.card)item.img=g.card;
+        else if(ll.includes('스프레이')&&g.spray)item.img=g.spray;
+        else if(ll.includes('버디')&&g.buddy)item.img=g.buddy;
+      });
+    });
+
+    skinSyncStatus=newCount>0?'auto':'synced';
+    renderSkins();
+  }catch(e){console.log('Skin auto-detect failed:',e.message)}
 }
 
 function toggleSkinCard(id){const card=document.getElementById(id);if(!card)return;const wasOpen=card.classList.contains('open');document.querySelectorAll('.skin-card.open').forEach(c=>{if(c.id!==id)c.classList.remove('open')});card.classList.toggle('open')}
@@ -2059,7 +2181,9 @@ function renderSkins(){const wrap=document.getElementById('skinsWrap');
 const sorted=[...blgSkinData].sort((a,b)=>parseInt(b.year)-parseInt(a.year));
 const maxYear=sorted.length?parseInt(sorted[0].year):0;
 let syncHTML='';
-if(skinSyncStatus==='static')syncHTML=`<div class="skins-sync"><span class="ss-dot done"></span>${blgSkinData.length}개 캡슐 · Fandom Wiki</div>`;
+if(skinSyncStatus==='auto')syncHTML=`<div class="skins-sync"><span class="ss-dot done" style="background:var(--cyan)"></span>${blgSkinData.length}개 캡슐 · 📡 Fandom Wiki 자동 감지</div>`;
+else if(skinSyncStatus==='synced')syncHTML=`<div class="skins-sync"><span class="ss-dot done"></span>${blgSkinData.length}개 캡슐 · Fandom Wiki ✓</div>`;
+else if(skinSyncStatus==='static')syncHTML=`<div class="skins-sync"><span class="ss-dot done"></span>${blgSkinData.length}개 캡슐 · Fandom Wiki</div>`;
 else syncHTML='';
 
 let h=`<div class="skins-title">BLG TEAM CLASSIC SKINS</div><div class="skins-sub">매년 발매되는 VCT 팀 캡슐 — Classic 스킨 컬렉션</div>${syncHTML}<div class="skins-grid">`;
