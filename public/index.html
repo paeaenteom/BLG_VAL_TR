@@ -2056,6 +2056,7 @@ async function fetchSkinData(){
   try{
     const FANDOM='https://valorant.fandom.com/api.php';
     const urlMap={};
+    const tsMap={}; // filename→timestamp for release date
 
     // Method 1: Get images from VCT_x_BLG_Capsule page
     const pgData=await proxyFetchJSON(`${FANDOM}?action=query&titles=VCT_x_BLG_Capsule&prop=images&imlimit=100&format=json`);
@@ -2075,6 +2076,7 @@ async function fetchSkinData(){
         aiData.query.allimages.forEach(img=>{
           const title='File:'+img.name;
           if(title.includes('BLG')&&!blgImgs.includes(title)){blgImgs.push(title);urlMap[img.name]=img.url;}
+          if(img.timestamp)tsMap[img.name]=img.timestamp;
         });
       }
       await new Promise(r=>setTimeout(r,300));
@@ -2086,6 +2088,7 @@ async function fetchSkinData(){
       aiNext.query.allimages.forEach(img=>{
         const title='File:'+img.name;
         if(!blgImgs.includes(title)){blgImgs.push(title);urlMap[img.name]=img.url;}
+          if(img.timestamp)tsMap[img.name]=img.timestamp;
       });
     }
 
@@ -2096,11 +2099,13 @@ async function fetchSkinData(){
     for(let i=0;i<needUrls.length;i+=50){
       const batch=needUrls.slice(i,i+50).join('|');
       await new Promise(r=>setTimeout(r,500));
-      const imgData=await proxyFetchJSON(`${FANDOM}?action=query&titles=${encodeURIComponent(batch)}&prop=imageinfo&iiprop=url&format=json`);
+      const imgData=await proxyFetchJSON(`${FANDOM}?action=query&titles=${encodeURIComponent(batch)}&prop=imageinfo&iiprop=url|timestamp&format=json`);
       if(!imgData?.query?.pages)continue;
       Object.values(imgData.query.pages).forEach(p=>{
         if(p.imageinfo&&p.imageinfo[0]?.url){
-          urlMap[p.title.replace('File:','')]=p.imageinfo[0].url;
+          const fn=p.title.replace('File:','');
+          urlMap[fn]=p.imageinfo[0].url;
+          if(p.imageinfo[0].timestamp)tsMap[fn]=p.imageinfo[0].timestamp;
         }
       });
     }
@@ -2118,8 +2123,11 @@ async function fetchSkinData(){
       else if(fname.match(/^(VCT|Bundle_VCT)_x_BLG/i)) year='2024';
       if(!year)return;
 
-      if(!yearGroups[year])yearGroups[year]={classic:null,bundle:null,card:null,spray:null,buddy:null,banner:null};
+      if(!yearGroups[year])yearGroups[year]={classic:null,bundle:null,card:null,spray:null,buddy:null,banner:null,earliest:null};
       const fl=fname.toLowerCase();
+      // Track earliest upload timestamp per year
+      const ts=tsMap[fname];
+      if(ts&&(!yearGroups[year].earliest||ts<yearGroups[year].earliest))yearGroups[year].earliest=ts;
       if(fl.includes('bundle'))yearGroups[year].bundle=url;
       else if(fl.includes('card'))yearGroups[year].card=url;
       else if(fl.includes('spray'))yearGroups[year].spray=url;
@@ -2150,6 +2158,10 @@ async function fetchSkinData(){
       if(imgs.banner)entry.items.push({label:'🏳️ 배너',img:imgs.banner});
 
       blgSkinData.push(entry);
+      // Auto-populate SKIN_META with detected date
+      if(imgs.earliest&&!SKIN_META[yr]){
+        SKIN_META[yr]={price:'2,320 VP',priceDiscount:'1,650 VP (재구매)',contents:entry.items.map(i=>i.label.replace(/^.\s*/,'')),cnRank:'TBD',added:imgs.earliest.substring(0,10)};
+      }
       newCount++;
       console.log(`✅ 신규 스킨 자동 감지: ${yr} (${entry.items.length}개 아이템)`);
     });
@@ -2160,6 +2172,8 @@ async function fetchSkinData(){
       if(!g)return;
       if(g.classic)s.img=g.classic;
       if(g.bundle)s.bundleImg=g.bundle;
+      // Update SKIN_META added date from Fandom timestamp (only if no manual date exists)
+      if(g.earliest&&!SKIN_META[s.year])SKIN_META[s.year]={price:'2,320 VP',priceDiscount:'1,650 VP (재구매)',contents:s.items.map(i=>i.label.replace(/^.\s*/,'')),cnRank:'TBD',added:g.earliest.substring(0,10)};
       // Update item URLs too
       s.items.forEach(item=>{
         const ll=item.label.toLowerCase();
