@@ -14,6 +14,7 @@ export default async function handler(req, res) {
     'liquipedia.net',
     'esports-api.service.valorantesports.com',
     'valorant.fandom.com',
+    'static.wikia.nocookie.net',
   ];
 
   let parsed;
@@ -38,6 +39,10 @@ export default async function handler(req, res) {
     if (parsed.hostname.includes('bilibili.com')) {
       headers['Referer'] = 'https://www.bilibili.com';
       headers['Origin'] = 'https://www.bilibili.com';
+    }
+    if (parsed.hostname.includes('wikia.nocookie.net')) {
+      headers['Referer'] = 'https://valorant.fandom.com/';
+      headers['Origin'] = 'https://valorant.fandom.com';
     }
 
     const resp = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
