@@ -1140,6 +1140,46 @@ let allData=JSON.parse(JSON.stringify(baselineData)),activeYear=String(new Date(
 
 // ===== LOCAL STORAGE PERSISTENCE (자동 동기화 데이터 영구 저장) =====
 const LS_KEY='blg_synced_matches';
+// Tournament name normalization for localStorage cleanup
+const LS_TOURN_NORM={'China Esports Festival Super Champions Cup':'CEFSCC',
+  'VALORANT Radiant International Invitational':'Radiant Intl. Invitational',
+  'Radiant International Invitational':'Radiant Intl. Invitational',
+  'Shanghai Esports Masters':'Shanghai Esports Masters',
+  'HERO Asian Champions League':'HERO Asian Champions League'};
+function cleanupLocalStorage(){
+  try{
+    const raw=localStorage.getItem(LS_KEY);if(!raw)return;
+    const saved=JSON.parse(raw);let changed=false;
+    Object.keys(saved).forEach(yr=>{
+      const tourns=saved[yr];if(!tourns)return;
+      // Rename tournament names
+      tourns.forEach(t=>{
+        for(const[pattern,base]of Object.entries(LS_TOURN_NORM)){
+          if(t.tournament.includes(pattern)&&!t.tournament.includes(base)){
+            t.tournament=base+' '+yr;changed=true;break;
+          }
+        }
+        // Normalize tags
+        if(t.matches)t.matches.forEach(m=>{
+          const nt=guessTag(m.tag);
+          if(nt!==m.tag){m.tag=nt;changed=true}
+        });
+      });
+      // Merge duplicate tournament names
+      const merged={};
+      tourns.forEach(t=>{
+        if(!merged[t.tournament]){merged[t.tournament]=t}
+        else{t.matches.forEach(m=>{
+          const exists=merged[t.tournament].matches.some(x=>x.date===m.date&&(x.tag===m.tag||x.opp===m.opp));
+          if(!exists)merged[t.tournament].matches.push(m);
+        });changed=true}
+      });
+      saved[yr]=Object.values(merged);
+    });
+    if(changed){localStorage.setItem(LS_KEY,JSON.stringify(saved));console.log('🧹 localStorage 대회명 정리 완료')}
+  }catch(e){}
+}
+cleanupLocalStorage();
 function loadSyncedMatches(){
   try{
     const raw=localStorage.getItem(LS_KEY);if(!raw)return;
@@ -1156,6 +1196,17 @@ function loadSyncedMatches(){
       if(!allData[yr])allData[yr]=[];
       tourns.forEach(st=>{
         let tg=allData[yr].find(g=>g.tournament===st.tournament);
+        if(!tg){
+          const evLc=st.tournament.toLowerCase();
+          const TOURN_ALIAS2={'china esports festival super champions cup':'CEFSCC',
+            'valorant radiant international invitational':'Radiant Intl. Invitational',
+            'radiant international invitational':'Radiant Intl. Invitational',
+            'shanghai esports masters':'Shanghai Esports Masters',
+            'hero asian champions league':'HERO Asian Champions League'};
+          for(const[alias,base]of Object.entries(TOURN_ALIAS2)){
+            if(evLc.includes(alias)){tg=allData[yr].find(g=>g.tournament.includes(base));break}
+          }
+        }
         if(!tg){
           const evLc=st.tournament.toLowerCase();
           tg=allData[yr].find(g=>g.tournament.toLowerCase().includes(evLc.substring(0,15))||evLc.includes(g.tournament.toLowerCase().substring(0,15)));
@@ -1681,7 +1732,10 @@ const sorted=[...(allData[y]||[])].map((t,oi)=>({...t,_oi:oi}));
 sorted.forEach(t=>t.matches.sort((a,b)=>b.date.localeCompare(a.date)));
 sorted.sort((a,b)=>{const ad=a.matches[0]?.date||'';const bd=b.matches[0]?.date||'';return bd.localeCompare(ad)});
 h+=`<div class="ys ${a?'active':''}" data-year="${y}"><div class="yh"><div class="yn">${y}</div><div class="ysm"><span class="w">${s.w}W</span> / <span class="l">${s.l}L</span> · ${s.total}경기</div></div>`;
-sorted.forEach((t)=>{const ti=t._oi;h+=`<div class="tg"><div class="th"><div class="tb ${t.intl?'intl':''}"></div><span class="tn">${t.tournament}</span><span class="tbg ${t.intl?'intl':''}">${t.intl?'🌍 국제':'🇨🇳 중국'}</span></div>`;
+sorted.forEach((t)=>{const ti=t._oi;
+const TOURN_DISPLAY={'CEFSCC 2025':'China Esports Festival Super Champions Cup 2025','EWC 2025':'Esports World Cup 2025'};
+const tnDisp=TOURN_DISPLAY[t.tournament]||t.tournament;
+h+=`<div class="tg"><div class="th"><div class="tb ${t.intl?'intl':''}"></div><span class="tn">${tnDisp}</span><span class="tbg ${t.intl?'intl':''}">${t.intl?'🌍 국제':'🇨🇳 중국'}</span></div>`;
 t.matches.forEach((m,mi)=>{const w=m.r==='win',id=`w_${y}_${ti}_${mi}`;
 const vodQ=`BLG vs ${m.opp} ${t.tournament} VALORANT ${m.date}`;
 const vodQEnc=encodeURIComponent(vodQ);
@@ -1937,14 +1991,26 @@ function guessTag(name){
     'Xi Lai Gaming':'XLG','XLG Esports':'XLG','Wolves Esports':'WOL','All Gamers':'AG','JDG Esports':'JDG','JD Gaming':'JDG','Titan Esports Club':'TEC',
     'TYLOO':'TYL','Nova Esports':'NV','NOVA Esports':'NV','Paper Rex':'PRX','DRX':'DRX','Gen.G':'GEN','T1':'T1',
     'Team Liquid':'TL','Fnatic':'FNC','FNATIC':'FNC','Sentinels':'SEN','NRG Esports':'NRG','NRG':'NRG','G2 Esports':'G2',
-    'Karmine Corp':'KC','LOUD':'LOUD','LEVIATÁN':'LEV','Leviatán':'LEV','Natus Vincere':'NAVI','Team Vitality':'VIT',
+    'Karmine Corp':'KC','LOUD':'LOUD','LEVIATÁN':'LEV','Leviatán':'LEV','Leviatan':'LEV','Leviat\u00e1n':'LEV','LEVIATAN':'LEV',
+    'Natus Vincere':'NAVI','Team Vitality':'VIT',
     'Cloud9':'C9','100 Thieves':'100T','Evil Geniuses':'EG','FURIA':'FURIA','MIBR':'MIBR',
     'Rex Regum Qeon':'RRQ','DetonatioN FocuseMe':'DFM','KRÜ Esports':'KRÜ',
     'LGD Gaming':'LGD','Royal Never Give Up':'RNG','Weibo Gaming':'WBG','Attacking Soul Esports':'ASE',
     'Nongshim Wolves Gaming':'NWG','Nighthunters Gaming':'NWG','Ninjas in Pyjamas':'NIP','Mysterious Esports':'ME','Monarch Esports':'ME','Top Esports':'TES','Bilibili Gaming':'BLG'};
   // Also check Riot team codes
-  const codeMap={'XE':'XLG','WOL':'WOL','DRG':'DRG','FPX':'FPX','EDG':'EDG','TE':'TE','AG':'AG','JDG':'JDG','TEC':'TEC','TYL':'TYL','NV':'NV'};
+  const codeMap={'XE':'XLG','WOL':'WOL','DRG':'DRG','FPX':'FPX','EDG':'EDG','TE':'TE','AG':'AG','JDG':'JDG','TEC':'TEC','TYL':'TYL','NV':'NV','LEV':'LEV','L':'LEV'};
   if(codeMap[name])return codeMap[name];
+  // Partial match for accented/variant names
+  const nameLc=name.toLowerCase();
+  if(nameLc.includes('leviat'))return'LEV';
+  if(nameLc.includes('wolves'))return'WOL';
+  if(nameLc.includes('dragon ranger'))return'DRG';
+  if(nameLc.includes('bilibili'))return'BLG';
+  if(nameLc.includes('edward'))return'EDG';
+  if(nameLc.includes('funplus'))return'FPX';
+  if(nameLc.includes('paper rex'))return'PRX';
+  if(nameLc.includes('karmine'))return'KC';
+  if(nameLc.includes('natus vincere'))return'NAVI';
   return map[name]||name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,3);
 }
 
@@ -2367,8 +2433,22 @@ async function liqAutoSync(){
         // Merge into allData
         const yr=t.yr;
         if(!allData[yr])allData[yr]=[];
+        // Tournament alias map for LP → baselineData matching
+        const TOURN_ALIAS={'china esports festival super champions cup':'CEFSCC',
+          'valorant radiant international invitational':'Radiant Intl. Invitational',
+          'radiant international invitational':'Radiant Intl. Invitational',
+          'valorant champions tour':'VCT','shanghai esports masters':'Shanghai Esports Masters',
+          'hero asian champions league':'HERO Asian Champions League',
+          'esports world cup':'EWC','fgc valorant invitational':'FGC Invitational'};
         // Find or create tournament group
         let tg=allData[yr].find(g=>g.tournament===t.event);
+        if(!tg){
+          // Try alias match
+          const evLc=t.event.toLowerCase();
+          for(const[alias,base]of Object.entries(TOURN_ALIAS)){
+            if(evLc.includes(alias)){tg=allData[yr].find(g=>g.tournament.includes(base));break}
+          }
+        }
         if(!tg){
           // Try fuzzy match
           const evLc=t.event.toLowerCase();
