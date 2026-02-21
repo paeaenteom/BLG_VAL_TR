@@ -3343,7 +3343,7 @@ items:[
 {label:'🔫 Classic 스킨',img:'https://static.wikia.nocookie.net/valorant/images/5/58/VCT26_x_BLG_Classic.png/revision/latest?cb=20260106171511'},
 {label:'🃏 플레이어 카드',img:'https://static.wikia.nocookie.net/valorant/images/1/1f/VCT26_x_BLG_Card_Large.png/revision/latest?cb=20260106172255'},
 {label:'💨 스프레이',img:'https://static.wikia.nocookie.net/valorant/images/4/4f/VCT_x_BLG_Spray.png/revision/latest?cb=20250109150555'},
-{label:'🔗 건 버디',img:'https://static.wikia.nocookie.net/valorant/images/2/2e/VCT_x_BLG_Buddy.png/revision/latest?cb=20240514190747'}
+{label:'🔗 건 버디',img:'https://media.valorant-api.com/buddies/2dc4e4c0-491e-43c8-f51b-f69f6ff16e37/displayicon.png'}
 ],link:'https://valorant.fandom.com/wiki/VCT_x_BLG_Capsule'},
 {year:'2025',name:'VCT25 x BLG 클래식',
 img:'https://static.wikia.nocookie.net/valorant/images/1/19/VCT25_x_BLG_Classic.png/revision/latest?cb=20250107193406',
@@ -3352,14 +3352,14 @@ items:[
 {label:'🔫 Classic 스킨',img:'https://static.wikia.nocookie.net/valorant/images/1/19/VCT25_x_BLG_Classic.png/revision/latest?cb=20250107193406'},
 {label:'🃏 플레이어 카드',img:'https://static.wikia.nocookie.net/valorant/images/b/bd/VCT25_x_BLG_Card_Large.png/revision/latest?cb=20250107193011'},
 {label:'💨 스프레이',img:'https://static.wikia.nocookie.net/valorant/images/4/4f/VCT_x_BLG_Spray.png/revision/latest?cb=20250109150555'},
-{label:'🔗 건 버디',img:'https://static.wikia.nocookie.net/valorant/images/2/2e/VCT_x_BLG_Buddy.png/revision/latest?cb=20240514190747'}
+{label:'🔗 건 버디',img:'https://media.valorant-api.com/buddies/2dc4e4c0-491e-43c8-f51b-f69f6ff16e37/displayicon.png'}
 ],link:'https://valorant.fandom.com/wiki/VCT_x_BLG_Capsule'},
 {year:'2024',name:'VCT x BLG 클래식',
 img:'https://static.wikia.nocookie.net/valorant/images/c/c4/VCT_x_BLG_Classic.png/revision/latest?cb=20240514190840',
 bundleImg:'https://static.wikia.nocookie.net/valorant/images/0/0d/Bundle_VCT_x_BLG.png/revision/latest?cb=20240515122408',
 items:[
 {label:'🔫 Classic 스킨',img:'https://static.wikia.nocookie.net/valorant/images/c/c4/VCT_x_BLG_Classic.png/revision/latest?cb=20240514190840'},
-{label:'🔗 건 버디',img:'https://static.wikia.nocookie.net/valorant/images/2/2e/VCT_x_BLG_Buddy.png/revision/latest?cb=20240514190747'}
+{label:'🔗 건 버디',img:'https://media.valorant-api.com/buddies/2dc4e4c0-491e-43c8-f51b-f69f6ff16e37/displayicon.png'}
 ],link:'https://valorant.fandom.com/wiki/VCT_x_BLG_Capsule'}
 ];
 
@@ -3558,7 +3558,7 @@ h+=`<div class="skin-card ${isCurrent?'latest':''}" id="${cid}">
 <span class="skin-arrow">▼</span>
 </div></div>
 <div class="skin-preview">
-<div class="skin-img-wrap"><img src="${pImg(s.img)}" alt="${s.name}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=item-placeholder>이미지 없음</div>'"></div>
+<div class="skin-img-wrap"><img src="${pImg(s.bundleImg||s.img)}" alt="${s.name}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=item-placeholder>이미지 없음</div>'"></div>
 <div class="skin-info">
 <div class="skin-name">${s.name}</div>
 <div class="skin-detail">${meta.contents.map(c=>'· '+c).join('<br>')}</div>
@@ -3646,6 +3646,91 @@ restoreVodCache();
 renderAll();
 fetchLiveData().then(()=>setInterval(fetchLiveData,5*60*1000));
 fetchSkinData();
+
+// Valorant-API.com에서 BLG 스킨/버디/스프레이 displayIcon 가져오기 (CORS OK, 프록시 불필요)
+async function fetchValApiSkins(){
+  try{
+    const r=await fetch('https://valorant-api.com/v1/weapons/skins?language=ko-KR');
+    const d=await r.json();
+    if(!d?.data)return;
+    const blgSkins=d.data.filter(s=>(s.displayName||'').toLowerCase().includes('blg'));
+    console.log(`🔫 Valorant API: ${blgSkins.length}개 BLG 스킨 발견`);
+    blgSkins.forEach(skin=>{
+      // Determine year from name: "VCT26 x BLG" → 2026, "VCT x BLG" → 2024
+      let year=null;
+      const yrM=skin.displayName.match(/VCT(\d{2})\s*x\s*BLG/i);
+      if(yrM)year='20'+yrM[1];
+      else if(/^VCT\s*x\s*BLG/i.test(skin.displayName))year='2024';
+      if(!year)return;
+      // Get displayIcon from levels[0] (best quality)
+      const icon=skin.levels?.[0]?.displayIcon||skin.displayIcon;
+      if(!icon)return;
+      // Update CLASSIC_VARIANTS (API images = no hotlink issues)
+      CLASSIC_VARIANTS[year]={img:icon};
+      // Update blgSkinData items
+      blgSkinData.forEach(s=>{
+        if(s.year!==year)return;
+        s.items.forEach(it=>{
+          if(it.label.includes('Classic')||it.label.includes('클래식'))it.img=icon;
+        });
+      });
+    });
+    // Also fetch player cards
+    await new Promise(r=>setTimeout(r,300));
+    const cr=await fetch('https://valorant-api.com/v1/playercards?language=ko-KR');
+    const cd=await cr.json();
+    if(cd?.data){
+      const blgCards=cd.data.filter(c=>(c.displayName||'').toLowerCase().includes('blg'));
+      console.log(`🃏 Valorant API: ${blgCards.length}개 BLG 카드 발견`);
+      blgCards.forEach(card=>{
+        let year=null;
+        const yrM=card.displayName.match(/VCT(\d{2})\s*x\s*BLG/i);
+        if(yrM)year='20'+yrM[1];
+        else if(/^VCT\s*x\s*BLG/i.test(card.displayName))year='2024';
+        if(!year)return;
+        // Build card variants from API (no hotlink)
+        const variants=[];
+        if(card.animationGif)variants.push({label:'애니메이션',img:card.animationGif,type:'gif'});
+        if(card.smallArt)variants.push({label:'Small',img:card.smallArt,type:'png'});
+        if(card.wideArt)variants.push({label:'Wide',img:card.wideArt,type:'png'});
+        if(card.largeArt)variants.push({label:'Large',img:card.largeArt,type:'png'});
+        if(variants.length)CARD_VARIANTS[year]=variants;
+        // Update blgSkinData card item image
+        const mainImg=card.largeArt||card.displayIcon;
+        if(mainImg){
+          blgSkinData.forEach(s=>{
+            if(s.year!==year)return;
+            s.items.forEach(it=>{if(it.label.includes('카드'))it.img=mainImg});
+          });
+        }
+      });
+    }
+    // Fetch sprays
+    await new Promise(r=>setTimeout(r,300));
+    const sr=await fetch('https://valorant-api.com/v1/sprays?language=ko-KR');
+    const sd=await sr.json();
+    if(sd?.data){
+      const blgSprays=sd.data.filter(s=>(s.displayName||'').toLowerCase().includes('blg'));
+      blgSprays.forEach(spray=>{
+        let year=null;
+        const yrM=spray.displayName.match(/VCT(\d{2})\s*x\s*BLG/i);
+        if(yrM)year='20'+yrM[1];
+        else if(/^VCT\s*x\s*BLG/i.test(spray.displayName))year='2024';
+        if(!year)return;
+        const icon=spray.fullTransparentIcon||spray.displayIcon;
+        if(icon){
+          blgSkinData.forEach(s=>{
+            if(s.year!==year)return;
+            s.items.forEach(it=>{if(it.label.includes('스프레이'))it.img=icon});
+          });
+        }
+      });
+    }
+    renderSkins();
+    console.log('✅ Valorant API 이미지 업데이트 완료');
+  }catch(e){console.log('Valorant API skin fetch failed:',e.message)}
+}
+setTimeout(fetchValApiSkins,5000); // Fandom sync 후에 실행
 // Live match detection: check every 60s (Riot Esports API)
 checkLiveMatch();setInterval(checkLiveMatch,60000);
 // Bilibili VOD auto-check: once at load + every 10min
