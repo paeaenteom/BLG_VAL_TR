@@ -556,27 +556,27 @@ const LOGOS={
   // Teams without hardcoded logos (filled by Riot Esports API or SVG fallback)
   KRÜ:VE+"1630017626481_kru.png",
   // Minor/defunct teams — VLR.gg owcdn 하드코딩
-  LGD:'https://owcdn.net/img/6549c2de5598b.png',
-  RNG:'https://owcdn.net/img/63eb523921a3e.png',
-  WBG:'https://owcdn.net/img/62232bd14e5d7.png',
-  NIP:'https://owcdn.net/img/62b947039ec5e.png',
-  ASE:'https://owcdn.net/img/62bd5058300a4.png',
-  NWG:'https://owcdn.net/img/6548758279b91.png',
-  ME:'https://owcdn.net/img/63467380720eb.png',
-  iG:'https://owcdn.net/img/63f2578bacdd1.png',
-  iNv:'https://owcdn.net/img/60d2693b8f4cf.png',
-  NTER:'https://owcdn.net/img/60d26a046c0ac.png',
-  TTG:'https://owcdn.net/img/63eb56072ae3f.png',
-  RA:'https://owcdn.net/img/63eb5aa842f05.png',
-  '4AM':'https://owcdn.net/img/63eb546aaf548.png',
-  NOP:'https://owcdn.net/img/612fcc4c7992d.png',
-  JJH:'https://owcdn.net/img/642afe112f136.png',
-  NH:'https://owcdn.net/img/640722a56e28f.png',
-  KZ:'https://owcdn.net/img/63eb5b7da623b.png',
-  GK:'https://owcdn.net/img/640e7f9282b65.png',
-  DYG:'https://owcdn.net/img/63f2618ba8574.png',
-  VLG:'',O3O:'https://owcdn.net/img/6340079e4549b.png',
-  TES:'https://owcdn.net/img/64f57e9bb00b5.png',
+  LGD:'',
+  RNG:'',
+  WBG:'',
+  NIP:'',
+  ASE:'',
+  NWG:'',
+  ME:'',
+  iG:'',
+  iNv:'',
+  NTER:'',
+  TTG:'',
+  RA:'',
+  '4AM':'',
+  NOP:'',
+  JJH:'',
+  NH:'',
+  KZ:'',
+  GK:'',
+  DYG:'',
+  VLG:'',O3O:'',
+  TES:'',
 };
 // Generate SVG text logo for teams without images
 function _tsvg(tag,bg='#333',fg='#fff'){
@@ -1416,6 +1416,7 @@ function detHTML(m,tn,il){const narr=fbNarr(m,tn);
 // Check LP detail cache
 const key=Object.keys(liqMatchDetailCache).find(k=>{const[y2,ti2,mi2]=k.split('_');const t2=allData[y2]?.[ti2];return t2&&t2.matches[mi2]===m});
 const liq=key?liqMatchDetailCache[key]:null;
+console.log(`🔍 detHTML: key=${key}, liq=${!!liq}, maps=${liq?.maps?.length||0}, agents=${liq?.maps?.[0]?.t1agents?.length||0}`,liq);
 // Find key for this match (for button id)
 let btnKey='';
 for(const y of Object.keys(allData)){const ts=allData[y];for(let ti=0;ti<ts.length;ti++){const t=ts[ti];for(let mi=0;mi<t.matches.length;mi++){if(t.matches[mi]===m){btnKey=`${y}_${ti}_${mi}`;break}}}}
@@ -1437,6 +1438,7 @@ let lm=null;
 if(liq?.maps){lm=liq.maps.find(g=>g.mapName&&(g.mapName===mp.n||g.mapName.includes(mp.n)))||liq.maps[i]||null}
 const blgAgents=lm?(blgSide===1?lm.t1agents:lm.t2agents):[];
 const oppAgents=lm?(blgSide===1?lm.t2agents:lm.t1agents):[];
+if(i===0)console.log(`🔍 mapHTMLEx: map=${mp.n}, lm=${!!lm}, blgSide=${blgSide}, blgAgents=${blgAgents?.length}, oppAgents=${oppAgents?.length}`,lm);
 h+=`<div class="md"><div class="md-n">MAP ${i+1}</div><div class="md-m">${mp.n}</div><div class="md-bw"><div class="md-bar"><div class="md-bf ${w?'bw':'bl'}" style="width:${p}%"></div></div></div><div class="md-s"><span class="${w?'mws':'mls'}">${mp.b}</span><span class="msp">:</span><span class="${w?'mls':'mws'}">${mp.o}</span></div><div class="md-r ${w?'rw':'rl'}">${w?'W':'L'}</div>`;
 if(blgAgents.length||oppAgents.length){
   h+=`<div class="md-agents"><div class="ag-row"><span class="ag-side blg">BLG</span>${blgAgents.map(a=>agentImg(a,22)).join(' ')}</div>`;
@@ -2060,12 +2062,13 @@ async function loadAgentIcons(){
       agentIconMap[name.toLowerCase()]=a.displayIcon;
       agentIconMap[a.displayName.toLowerCase()]=a.displayIcon;
     });
-  }catch(e){agentIconMap={}}
+    console.log(`✅ agentIconMap: ${Object.keys(agentIconMap).length}개 에이전트 로드`);
+  }catch(e){agentIconMap={};console.log('❌ agentIcons load fail:',e)}
 }
-loadAgentIcons();
+loadAgentIcons().then(()=>console.log(`🔍 agentIconMap loaded: ${Object.keys(agentIconMap||{}).length} agents`));
 
 function agentImg(name,sz=20){
-  if(!agentIconMap||!name)return'';
+  if(!agentIconMap||!name){console.log(`🔍 agentImg: iconMap=${!!agentIconMap}, name=${name}`);return'';}
   const url=agentIconMap[name.toLowerCase()]||agentIconMap[name.replace('/','').toLowerCase()];
   if(!url)return`<span class="ag-name">${name}</span>`;
   return`<img src="${url}" alt="${name}" title="${name}" style="width:${sz}px;height:${sz}px;border-radius:50%;vertical-align:middle">`;
