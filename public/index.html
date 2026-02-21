@@ -3275,6 +3275,49 @@ const SKIN_META={
 };
 function getSkinMeta(yr){return SKIN_META[yr]||{price:'2,320 VP',priceDiscount:'1,650 VP (재구매)',contents:['Classic 스킨','플레이어 카드','스프레이','건 버디'],cnRank:'TBD',added:yr+'-01'}}
 
+// Player Card variants (animated, small, wide, large)
+const CARD_VARIANTS={
+'2026':[
+  {label:'애니메이션',img:'https://static.wikia.nocookie.net/valorant/images/c/c4/VCT26_x_BLG_Card_animated.gif/revision/latest?cb=20260110183254',type:'gif'},
+  {label:'Small',img:'https://static.wikia.nocookie.net/valorant/images/5/5c/VCT26_x_BLG_Card_Small.png/revision/latest?cb=20260106172256',type:'png'},
+  {label:'Wide',img:'https://static.wikia.nocookie.net/valorant/images/2/2f/VCT26_x_BLG_Card_Wide.png/revision/latest?cb=20260106172257',type:'png'},
+  {label:'Large',img:'https://static.wikia.nocookie.net/valorant/images/1/1f/VCT26_x_BLG_Card_Large.png/revision/latest?cb=20260106172255',type:'png'}
+],
+'2025':[
+  {label:'Large',img:'https://static.wikia.nocookie.net/valorant/images/b/bd/VCT25_x_BLG_Card_Large.png/revision/latest?cb=20250107193011',type:'png'}
+],
+'2024':[
+  {label:'Large',img:'https://static.wikia.nocookie.net/valorant/images/7/79/VCT_x_BLG_Card_Large.png/revision/latest?cb=20240514190744',type:'png'}
+]
+};
+function openCardPopup(year){
+  const variants=CARD_VARIANTS[year];if(!variants||!variants.length)return;
+  const overlay=document.getElementById('vodOverlay');
+  const body=document.getElementById('vodBody');
+  const title=document.getElementById('vodTitle');
+  const matchLabel=document.getElementById('vodMatchLabel');
+  const ytLink=document.getElementById('vodYtLink');
+  const biliLink=document.getElementById('vodBiliLink');
+  title.textContent=`VCT${year.substring(2)} x BLG 플레이어 카드`;
+  matchLabel.textContent=`${variants.length}개 버전`;
+  ytLink.style.display='none';biliLink.style.display='none';
+  // Remove any existing part selector
+  const existing=document.getElementById('biliParts');if(existing)existing.remove();
+  // Show first variant (animated if available)
+  const first=variants[0];
+  body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="cardPreview" src="${first.img}" alt="${first.label}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
+  overlay.classList.add('active');document.body.style.overflow='hidden';
+  // Add variant buttons if >1
+  if(variants.length>1){
+    let h=`<div class="bili-parts" id="biliParts"><div class="bili-parts-label">🃏 카드 버전</div><div class="bili-parts-list">`;
+    variants.forEach((v,i)=>{
+      h+=`<button class="bili-part-btn ${i===0?'active':''}" onclick="document.getElementById('cardPreview').src='${v.img}';document.querySelectorAll('.bili-part-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">${v.label}${v.type==='gif'?' 🎬':''}</button>`;
+    });
+    h+=`</div></div>`;
+    body.parentElement.insertBefore(createEl(h),body.nextSibling);
+  }
+}
+
 const STATIC_SKINS=[
 {year:'2026',name:'VCT26 x BLG 클래식',
 img:'https://static.wikia.nocookie.net/valorant/images/5/58/VCT26_x_BLG_Classic.png/revision/latest?cb=20260106171511',
@@ -3481,9 +3524,12 @@ ${meta.cnRank?`<span class="sk-tag rank">🏆 ${meta.cnRank}</span>`:''}
 </div></div></div>
 <div class="skin-expand"><div class="skin-detail-inner">
 <div class="item-label">📦 캡슐 구성품</div>
-<div class="items-grid">${s.items.map(it=>`<div class="item-cell">
+<div class="items-grid">${s.items.map(it=>{
+const isCard=it.label.includes('카드');
+const cardClick=isCard&&CARD_VARIANTS[s.year]?` onclick="openCardPopup('${s.year}')" style="cursor:pointer" title="클릭하면 카드 버전 보기"`:'';
+return`<div class="item-cell"${cardClick}>
 <div class="item-img-box"><img src="${it.img}" alt="${it.label}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=item-placeholder>이미지 없음</div>'"></div>
-<div class="item-name">${it.label}</div></div>`).join('')}</div>
+<div class="item-name">${it.label}${isCard&&CARD_VARIANTS[s.year]?' 🔍':''}</div></div>`}).join('')}</div>
 <a href="${s.link}" target="_blank" class="skin-link">🔗 Valorant Wiki에서 자세히 보기 →</a>
 </div></div></div>`;
 });
