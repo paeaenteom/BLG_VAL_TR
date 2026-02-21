@@ -4184,8 +4184,14 @@ function openSoopVod(date,tag){
 
 async function searchVod(query){
   try{
-    // Search Bilibili directly for VODs - include VALORANT keyword, filter LoL
-    const kw=encodeURIComponent(query.replace(/bilibili gaming/i,'BLG').replace(/VALORANT/i,'无畏契约')+' 无畏契约');
+    // Simplify query: extract just team names and date
+    const teamM=query.match(/BLG\s*vs\s*(\S+)/i);
+    const dateM=query.match(/(\d{4}-\d{2}-\d{2})/);
+    const opp=teamM?teamM[1]:'';
+    const dt=dateM?dateM[1]:'';
+    // Build short keyword: "BLG vs EDG 无畏契约" (not the full tournament name)
+    const shortQ=`BLG ${opp} 无畏契约`.trim();
+    const kw=encodeURIComponent(shortQ);
     const d=await proxyFetchJSON(`https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword=${kw}&order=totalrank&duration=4`);
     let result={videoId:null,videoTitle:null,bvid:null,biliTitle:null};
     if(d&&d.data&&d.data.result){
@@ -4198,7 +4204,7 @@ async function searchVod(query){
     }
     // Also try official channel search
     if(!result.bvid){
-      const d2=await proxyFetchJSON(`https://api.bilibili.com/x/space/arc/search?mid=2071691173&ps=5&keyword=${encodeURIComponent(query.replace(/bilibili gaming/i,'BLG')+' 无畏契约')}&order=pubdate`);
+      const d2=await proxyFetchJSON(`https://api.bilibili.com/x/space/arc/search?mid=2071691173&ps=5&keyword=${encodeURIComponent(shortQ)}&order=pubdate`);
       if(d2&&d2.data&&d2.data.list&&d2.data.list.vlist){
         const vid=d2.data.list.vlist.find(v=>{const t=v.title||'';return !t.includes('英雄联盟')&&!t.includes('LOL')&&!t.includes('LPL');});
         if(vid){result.bvid=vid.bvid;result.biliTitle=vid.title;}
