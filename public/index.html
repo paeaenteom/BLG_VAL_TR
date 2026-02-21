@@ -3558,7 +3558,7 @@ h+=`<div class="skin-card ${isCurrent?'latest':''}" id="${cid}">
 <span class="skin-arrow">▼</span>
 </div></div>
 <div class="skin-preview">
-<div class="skin-img-wrap"><img src="${pImg(s.bundleImg||s.img)}" alt="${s.name}" loading="lazy" onerror="this.src='${pImg(s.img)}';this.onerror=null"></div>
+<div class="skin-img-wrap"><img src="${pImg(s.img)}" alt="${s.name}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=item-placeholder>이미지 없음</div>'"></div>
 <div class="skin-info">
 <div class="skin-name">${s.name}</div>
 <div class="skin-detail">${meta.contents.map(c=>'· '+c).join('<br>')}</div>
