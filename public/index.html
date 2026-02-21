@@ -4184,31 +4184,35 @@ function openSoopVod(date,tag){
 
 async function searchVod(query){
   try{
-    // Simplify query: extract just team names and date
     const teamM=query.match(/BLG\s*vs\s*(\S+)/i);
     const dateM=query.match(/(\d{4}-\d{2}-\d{2})/);
     const opp=teamM?teamM[1]:'';
     const dt=dateM?dateM[1]:'';
-    // Build short keyword: "BLG vs EDG 无畏契约" (not the full tournament name)
-    const shortQ=`BLG ${opp} 无畏契约`.trim();
-    const kw=encodeURIComponent(shortQ);
-    const d=await proxyFetchJSON(`https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword=${kw}&order=totalrank&duration=4`);
+    // Use channel search only (web search returns 412)
+    const keywords=[
+      `BLG ${opp}`,
+      `BLG vs ${opp}`,
+      opp?`哔哩哔哩 ${opp}`:null,
+    ].filter(Boolean);
     let result={videoId:null,videoTitle:null,bvid:null,biliTitle:null};
-    if(d&&d.data&&d.data.result){
-      const vid=d.data.result.find(v=>{
-        const t=(v.title||'').replace(/<[^>]+>/g,'');
-        if(t.includes('英雄联盟')||t.includes('LOL')||t.includes('LPL')||t.includes('联赛'))return false;
-        return v.bvid&&(t.includes('BLG')||t.includes('哔哩哔哩'));
-      });
-      if(vid){result.bvid=vid.bvid;result.biliTitle=vid.title.replace(/<[^>]+>/g,'');}
-    }
-    // Also try official channel search
-    if(!result.bvid){
-      const d2=await proxyFetchJSON(`https://api.bilibili.com/x/space/arc/search?mid=2071691173&ps=5&keyword=${encodeURIComponent(shortQ)}&order=pubdate`);
-      if(d2&&d2.data&&d2.data.list&&d2.data.list.vlist){
-        const vid=d2.data.list.vlist.find(v=>{const t=v.title||'';return !t.includes('英雄联盟')&&!t.includes('LOL')&&!t.includes('LPL');});
-        if(vid){result.bvid=vid.bvid;result.biliTitle=vid.title;}
-      }
+    for(const kw of keywords){
+      if(result.bvid)break;
+      try{
+        const d=await proxyFetchJSON(`https://api.bilibili.com/x/space/arc/search?mid=2071691173&ps=5&keyword=${encodeURIComponent(kw)}&order=pubdate`);
+        if(d&&d.data&&d.data.list&&d.data.list.vlist){
+          const vid=d.data.list.vlist.find(v=>{
+            const t=v.title||'';
+            if(t.includes('英雄联盟')||t.includes('LOL')||t.includes('LPL')||t.includes('联赛'))return false;
+            // Match by date if available
+            if(dt){
+              const mm=dt.substring(5,7).replace(/^0/,''),dd=dt.substring(8,10).replace(/^0/,'');
+              if(t.includes(mm+'月')&&t.includes(dd+'日'))return true;
+            }
+            return t.includes('BLG')||t.includes('哔哩哔哩');
+          });
+          if(vid){result.bvid=vid.bvid;result.biliTitle=vid.title;}
+        }
+      }catch(e){}
     }
     if(result.bvid)return result;
     return null;
