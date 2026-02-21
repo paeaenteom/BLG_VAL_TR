@@ -3316,7 +3316,7 @@ function openClassicPopup(year){
   matchLabel.textContent=`레벨 ${startLv}~${showLevels[showLevels.length-1].lv}`;
   // Show video if available, else image
   if(first.video){
-    body.innerHTML=`<video id="classicPreview" src="${first.video}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;background:#0a0a12"></video>`;
+    body.innerHTML=`<video id="classicPreview" src="${first.video}" autoplay loop playsinline controls style="width:100%;height:100%;object-fit:contain;background:#0a0a12"></video>`;
   }else{
     body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="classicPreview" src="${first.icon}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
   }
@@ -3337,7 +3337,7 @@ function switchClassicLevel(idx,year){
   const lv=levels[idx];if(!lv)return;
   const body=document.getElementById('vodBody');
   if(lv.video){
-    body.innerHTML=`<video id="classicPreview" src="${lv.video}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;background:#0a0a12"></video>`;
+    body.innerHTML=`<video id="classicPreview" src="${lv.video}" autoplay loop playsinline controls style="width:100%;height:100%;object-fit:contain;background:#0a0a12"></video>`;
   }else{
     body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="classicPreview" src="${lv.icon}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
   }
