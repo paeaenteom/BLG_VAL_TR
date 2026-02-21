@@ -355,6 +355,7 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 .skin-badge{font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 12px;border-radius:100px;text-transform:uppercase;letter-spacing:1.5px}
 .skin-badge.current{background:var(--blue-d);color:var(--blue);border:1px solid rgba(0,161,214,.3)}
 .skin-badge.past{background:var(--s3);color:var(--dim);border:1px solid var(--brd2)}
+.skin-badge.ended{background:rgba(255,165,0,.1);color:#ffa500;border:1px solid rgba(255,165,0,.25)}
 .skin-arrow{color:var(--dimmer);font-size:14px;transition:transform .25s}
 .skin-card.open .skin-arrow{transform:rotate(180deg)}
 /* Skin body: always visible preview */
@@ -3447,6 +3448,7 @@ const CLASSIC_VARIANTS={
 };
 // Level data per year (populated by fetchValApiSkins)
 const CLASSIC_LEVELS={};
+let skinSaleYear=null; // 현재 판매 중인 스킨 연도 (API 자동 감지)
 function openClassicPopup(year){
   const overlay=document.getElementById('vodOverlay');
   const body=document.getElementById('vodBody');
@@ -3740,6 +3742,8 @@ function toggleSkinCard(id){const card=document.getElementById(id);if(!card)retu
 function renderSkins(){const wrap=document.getElementById('skinsWrap');
 const sorted=[...blgSkinData].sort((a,b)=>parseInt(b.year)-parseInt(a.year));
 const maxYear=sorted.length?parseInt(sorted[0].year):0;
+// 판매 상태: skinSaleYear가 설정되어 있으면 사용
+const saleYear=skinSaleYear; // null = 시즌 종료 (아무것도 판매 안 함)
 let syncHTML='';
 if(skinSyncStatus==='auto')syncHTML=`<div class="skins-sync"><span class="ss-dot done" style="background:var(--cyan)"></span>${blgSkinData.length}개 캡슐 · 📡 Fandom Wiki 자동 감지</div>`;
 else if(skinSyncStatus==='synced')syncHTML=`<div class="skins-sync"><span class="ss-dot done"></span>${blgSkinData.length}개 캡슐 · Fandom Wiki ✓</div>`;
@@ -3748,14 +3752,17 @@ else syncHTML='';
 
 let h=`<div class="skins-title">BLG TEAM CLASSIC SKINS</div><div class="skins-sub">매년 발매되는 VCT 팀 캡슐 — Classic 스킨 컬렉션</div>${syncHTML}<div class="skins-grid">`;
 sorted.forEach(s=>{
-const isCurrent=parseInt(s.year)===maxYear;
+const isOnSale=saleYear&&s.year===saleYear;
+const isSeasonEnded=!skinSaleYear&&parseInt(s.year)===maxYear;
 const cid='skincard_'+s.year;
 const meta=getSkinMeta(s.year);
-h+=`<div class="skin-card ${isCurrent?'latest':''}" id="${cid}">
+const badgeText=isOnSale?'ON SALE':isSeasonEnded?'SEASON ENDED':'ARCHIVED';
+const badgeClass=isOnSale?'current':isSeasonEnded?'ended':'past';
+h+=`<div class="skin-card ${isOnSale||isSeasonEnded?'latest':''}" id="${cid}">
 <div class="skin-header" onclick="toggleSkinCard('${cid}')">
 <div class="skin-year">${s.year}</div>
 <div class="skin-hright">
-<span class="skin-badge ${isCurrent?'current':'past'}">${isCurrent?'ON SALE':'ARCHIVED'}</span>
+<span class="skin-badge ${badgeClass}">${badgeText}</span>
 <span class="skin-arrow">▼</span>
 </div></div>
 <div class="skin-preview">
@@ -4018,6 +4025,8 @@ async function fetchValApiSkins(){
     try{localStorage.setItem(VAL_API_CACHE_KEY,JSON.stringify(newCache));
       console.log('💾 Valorant API 캐시 저장 완료');
     }catch(e){}
+    // === 판매 상태 자동 감지 ===
+    detectSkinSaleStatus(newCache);
     renderSkins();
     console.log('✅ Valorant API 이미지 업데이트 완료');
   }catch(e){console.log('Valorant API skin fetch failed:',e.message)}
@@ -4091,6 +4100,61 @@ async function autoVlrSync(){
     }
   }catch(e){}
 }
+
+// === 스킨 판매 상태 자동 감지 ===
+function detectSkinSaleStatus(cache){
+  const apiYears=Object.keys(cache?.skins||{}).map(Number).filter(Boolean).sort((a,b)=>b-a);
+  if(!apiYears.length){
+    // Cache에서 복원
+    try{skinSaleYear=localStorage.getItem('blg_skin_sale_year')||null}catch(e){}
+    return;
+  }
+  const newestApiYear=String(apiYears[0]);
+  const now=new Date();
+  const curYear=now.getFullYear();
+  const curMonth=now.getMonth()+1; // 1-12
+
+  // 기본: API에서 가장 최신 연도 = ON SALE
+  skinSaleYear=newestApiYear;
+
+  // Champions 종료 체크: Riot Schedule에서 확인
+  // Champions는 보통 8-9월에 끝남. 끝나고 현재 10월 이후면 판매 종료 가능
+  if(riotScheduleCache){
+    const champsEvents=riotScheduleCache.filter(ev=>{
+      const name=(ev.blockName||'').toLowerCase()+(ev.league?.name||'').toLowerCase();
+      return name.includes('champions');
+    });
+    const champsCompleted=champsEvents.filter(ev=>ev.state==='completed');
+    // 해당 연도 Champions가 끝났는지 확인
+    const yearChampsEnded=champsCompleted.some(ev=>{
+      const evDate=ev.startTime?.substring(0,4);
+      return evDate===newestApiYear;
+    });
+    if(yearChampsEnded && curMonth>=11){
+      // Champions 끝 + 11월 이후 = 판매 종료 가능성 높음
+      // 하지만 새 연도 스킨이 아직 안 나왔으면 "SEASON ENDED"
+      const nextYear=String(parseInt(newestApiYear)+1);
+      const hasNextYear=apiYears.includes(parseInt(nextYear));
+      if(hasNextYear){
+        skinSaleYear=nextYear; // 새 스킨 나옴 → 새 연도 ON SALE
+      }else{
+        skinSaleYear=null; // Champions 끝 + 새 스킨 없음 = 시즌 종료
+      }
+      console.log(`🏆 ${newestApiYear} Champions 종료 감지. 판매 상태: ${skinSaleYear?skinSaleYear+' ON SALE':'SEASON ENDED'}`);
+    }
+  }
+
+  // localStorage에 저장
+  try{localStorage.setItem('blg_skin_sale_year',skinSaleYear||'')}catch(e){}
+  console.log(`🔫 스킨 판매 상태: ${skinSaleYear?skinSaleYear+' ON SALE':'시즌 종료'}`);
+}
+// 초기 로드: 캐시에서 판매 상태 복원 (없으면 현재 연도)
+try{
+  const cached=localStorage.getItem('blg_skin_sale_year');
+  if(cached===null)skinSaleYear=String(new Date().getFullYear()); // 첫 방문: 현재 연도
+  else if(cached==='')skinSaleYear=null; // 시즌 종료 상태
+  else skinSaleYear=cached;
+}catch(e){skinSaleYear=String(new Date().getFullYear())}
 
 // === 새 연도 스킨 자동 감지 ===
 function autoDetectNewSkinYears(){
