@@ -687,9 +687,22 @@ function DT(tag){return TAG_DISPLAY[tag]||tag}
 // ===== RIOT ESPORTS API (valorantesports.com - free, no CORS!) =====
 const RIOT_ESPORTS_BASE='https://esports-api.service.valorantesports.com/persisted/val';
 const RIOT_ESPORTS_KEY='0TvQnueqKa5mxJntVWt0w4LpLfEkrV1Ta8rQBb9Z';
-const VCT_CN_LEAGUE_ID='111691194187846945';
+let ALL_LEAGUE_IDS=['111691194187846945','111688766498498302','111688766498498301','111688766498498300']; // fallback
 let riotScheduleCache=null;
 let riotScheduleTime=0;
+
+// Auto-discover league IDs from Riot API (리그 ID 관리 불필요)
+async function discoverLeagueIds(){
+  try{
+    const d=await riotEsportsFetch('getLeagues',{});
+    if(!d?.data?.leagues)return;
+    const ids=d.data.leagues.map(l=>l.id).filter(Boolean);
+    if(ids.length>0){
+      ALL_LEAGUE_IDS=ids;
+      console.log(`🏆 Riot 리그 자동 감지: ${ids.length}개 → 전부 BLG 필터링`);
+    }
+  }catch(e){}
+}
 
 async function riotEsportsFetch(endpoint, params={}){
   params.hl=params.hl||'en-US'; params.sport='val';
@@ -705,21 +718,34 @@ async function riotEsportsFetch(endpoint, params={}){
 async function getRiotSchedule(forceRefresh=false){
   const now=Date.now();
   if(!forceRefresh && riotScheduleCache && (now-riotScheduleTime)<3*60*1000) return riotScheduleCache;
-  const d=await riotEsportsFetch('getSchedule',{leagueId:VCT_CN_LEAGUE_ID});
-  if(d&&d.data?.schedule?.events){
-    riotScheduleCache=d.data.schedule.events;
+  // Fetch ALL leagues, filter for BLG
+  let allEvents=[];
+  for(const lid of ALL_LEAGUE_IDS){
+    try{
+      const d=await riotEsportsFetch('getSchedule',{leagueId:lid});
+      if(d?.data?.schedule?.events){
+        const blgEvents=d.data.schedule.events.filter(ev=>
+          (ev.match?.teams||[]).some(t=>isBLGTeam(t))
+        );
+        allEvents.push(...blgEvents);
+        // Also cache ALL logos (not just BLG)
+        d.data.schedule.events.forEach(ev=>{
+          (ev.match?.teams||[]).forEach(t=>{
+            if(t.code&&t.image){
+              const aliases=[t.code,{KRU:'KRÜ',Wolves:'WOL',TITAN:'TEC'}[t.code]].filter(Boolean);
+              aliases.forEach(c=>{if(!LOGOS[c]||LOGOS[c].startsWith('data:')){LOGOS[c]=t.image;logoCache[c]=t.image}});
+            }
+          });
+        });
+      }
+    }catch(e){}
+  }
+  if(allEvents.length>0){
+    riotScheduleCache=allEvents;
     riotScheduleTime=now;
-    // Cache official logos from API
-    riotScheduleCache.forEach(ev=>{
-      (ev.match?.teams||[]).forEach(t=>{
-        if(t.code && t.image){
-          const aliases=[t.code,{KRU:'KRÜ',Wolves:'WOL',TITAN:'TEC'}[t.code]].filter(Boolean);
-          aliases.forEach(c=>{if(!LOGOS[c]||LOGOS[c].startsWith('data:')){LOGOS[c]=t.image;logoCache[c]=t.image}});
-        }
-      });
-    });
   }
   return riotScheduleCache||[];
+}
 }
 
 function isBLGTeam(team){return team.code==='BLG'||team.name?.includes('Bilibili')}
@@ -742,7 +768,7 @@ async function fetchRiotTeamLogos(){
   }
   try{
     // VCT league IDs
-    const leagueIds=['111691194187846945','111688766498498302','111688766498498301','111688766498498300']; // CN, Americas, EMEA, Pacific
+    const leagueIds=ALL_LEAGUE_IDS; // Auto-discovered from Riot API
     // Method 1: getSchedule (most reliable - has match team data)
     for(const lid of leagueIds){
       const d=await riotEsportsFetch('getSchedule',{leagueId:lid});
@@ -918,7 +944,7 @@ async function fetchLiquipediaLogos(){
 }
 
 // Fetch logos 3s after page load
-setTimeout(fetchRiotTeamLogos,3000);
+setTimeout(async()=>{await discoverLeagueIds();fetchRiotTeamLogos()},3000);
 
 // ===== UPCOMING MATCHES DATA =====
 const upcomingData = [
@@ -2289,15 +2315,35 @@ async function loadAgentIcons(){
   try{
     const r=await fetch(AGENT_ICONS_URL);const d=await r.json();
     agentIconMap={};
+    const names=[];
     (d.data||[]).forEach(a=>{
       const name=a.displayName.replace('/','');// KAY/O → KAYO
       agentIconMap[name.toLowerCase()]=a.displayIcon;
       agentIconMap[a.displayName.toLowerCase()]=a.displayIcon;
+      names.push(a.displayName);
     });
+    // Auto-populate agent list (replaces hardcoded AGENTS)
+    if(names.length>0)window._API_AGENTS=names;
     console.log(`✅ agentIconMap: ${Object.keys(agentIconMap).length}개 에이전트 로드`);
   }catch(e){agentIconMap={}}
 }
 loadAgentIcons();
+
+// Auto-populate map list from API
+async function loadApiMaps(){
+  try{
+    const r=await fetch('https://valorant-api.com/v1/maps');
+    const d=await r.json();
+    if(d?.data){
+      const names=d.data.map(m=>m.displayName).filter(n=>n&&n!=='The Range');
+      if(names.length>0){
+        window._API_MAPS=names;
+        console.log(`🗺️ API 맵 로드: ${names.length}개 (${names.join(', ')})`);
+      }
+    }
+  }catch(e){}
+}
+loadApiMaps();
 
 function agentImg(name,sz=20){
   if(!agentIconMap||!name)return'';
@@ -2322,8 +2368,8 @@ async function liqFetchTournDetail(pagePath){
 
 function liqParsePopups(doc){
   const matches=[];
-  const MAPS=['Ascent','Bind','Breeze','Fracture','Haven','Icebox','Lotus','Pearl','Split','Sunset','Abyss','Corrode'];
-  const AGENTS=['Jett','Raze','Phoenix','Reyna','Yoru','Neon','Iso','Waylay','Sova','Breach','Skye','KAY/O','Fade','Gekko','Tejo','Killjoy','Cypher','Sage','Chamber','Deadlock','Vyse','Brimstone','Omen','Viper','Astra','Harbor','Clove'];
+  const MAPS=window._API_MAPS||['Ascent','Bind','Breeze','Fracture','Haven','Icebox','Lotus','Pearl','Split','Sunset','Abyss','Corrode'];
+  const AGENTS=window._API_AGENTS||['Jett','Raze','Phoenix','Reyna','Yoru','Neon','Iso','Waylay','Sova','Breach','Skye','KAY/O','Fade','Gekko','Tejo','Killjoy','Cypher','Sage','Chamber','Deadlock','Vyse','Brimstone','Omen','Viper','Astra','Harbor','Clove'];
   doc.querySelectorAll('.brkts-popup').forEach(popup=>{
     const m={team1:'',team2:'',score:'',maps:[],veto:[],_hl:[]};
     // Teams
