@@ -630,7 +630,7 @@ async function getRiotSchedule(forceRefresh=false){
 
 function isBLGTeam(team){return team.code==='BLG'||team.name?.includes('Bilibili')}
 
-// Fetch ALL VCT team logos from Riot Esports API (getStandings has all teams with images)
+// Fetch ALL VCT team logos from Riot Esports API (getSchedule has all teams with images)
 async function fetchRiotTeamLogos(){
   // Riot API code → our code mapping (handles special chars, aliases)
   const CODE_ALIAS={KRU:'KRÜ',KRUE:'KRÜ',Wolves:'WOL',TITAN:'TEC'};
@@ -659,26 +659,6 @@ async function fetchRiotTeamLogos(){
           });
         });
       }
-      await new Promise(r=>setTimeout(r,500));
-    }
-    // Method 2: getStandings (보충 — 502 나면 무시)
-    for(const lid of leagueIds){
-      try{
-        const d=await riotEsportsFetch('getStandings',{leagueId:lid});
-        if(d?.data?.standings){
-          (Array.isArray(d.data.standings)?d.data.standings:[d.data.standings]).forEach(s=>{
-            (s.stages||[]).forEach(st=>{
-              (st.sections||[]).forEach(sec=>{
-                (sec.rankings||[]).forEach(r=>{
-                  (r.teams||[]).forEach(t=>{
-                    if(t.code&&t.image)applyLogo(t.code,t.image);
-                  });
-                });
-              });
-            });
-          });
-        }
-      }catch(e){}
       await new Promise(r=>setTimeout(r,500));
     }
     const filled=Object.keys(LOGOS).filter(k=>LOGOS[k]&&!LOGOS[k].startsWith('data:')).length;
