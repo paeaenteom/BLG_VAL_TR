@@ -3312,7 +3312,7 @@ function openClassicPopup(year){
   ytLink.style.display='none';biliLink.style.display='none';
   const existing=document.getElementById('biliParts');if(existing)existing.remove();
   const cur=CLASSIC_VARIANTS[year]||CLASSIC_VARIANTS[yrs[0]];
-  body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="classicPreview" src="${cur.img}" alt="VCT${year.substring(2)} x BLG Classic" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
+  body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="classicPreview" src="${cur.img}" referrerpolicy="no-referrer" alt="VCT${year.substring(2)} x BLG Classic" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
   overlay.classList.add('active');document.body.style.overflow='hidden';
   let h=`<div class="bili-parts" id="biliParts"><div class="bili-parts-label">🔫 연도별 Classic 스킨</div><div class="bili-parts-list">`;
   yrs.forEach((yr,i)=>{
@@ -3337,7 +3337,7 @@ function openCardPopup(year){
   const existing=document.getElementById('biliParts');if(existing)existing.remove();
   // Show first variant (animated if available)
   const first=variants[0];
-  body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="cardPreview" src="${first.img}" alt="${first.label}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
+  body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="cardPreview" src="${first.img}" referrerpolicy="no-referrer" alt="${first.label}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
   overlay.classList.add('active');document.body.style.overflow='hidden';
   // Add variant buttons if >1
   if(variants.length>1){
@@ -3573,7 +3573,7 @@ h+=`<div class="skin-card ${isCurrent?'latest':''}" id="${cid}">
 <span class="skin-arrow">▼</span>
 </div></div>
 <div class="skin-preview">
-<div class="skin-img-wrap"><img src="${s.bundleImg||s.img}" alt="${s.name}" loading="lazy" onerror="this.src='${s.img}';this.onerror=null"></div>
+<div class="skin-img-wrap"><img src="${s.bundleImg||s.img}" alt="${s.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='${s.img}';this.onerror=null"></div>
 <div class="skin-info">
 <div class="skin-name">${s.name}</div>
 <div class="skin-detail">${meta.contents.map(c=>'· '+c).join('<br>')}</div>
@@ -3593,7 +3593,7 @@ const classicClick=isClassic&&CLASSIC_VARIANTS[s.year]?` onclick="openClassicPop
 const cellClick=cardClick||classicClick;
 const badge=isCard&&CARD_VARIANTS[s.year]?' 🔍':isClassic&&CLASSIC_VARIANTS[s.year]?' 🔍':'';
 return`<div class="item-cell"${cellClick}>
-<div class="item-img-box"><img src="${it.img}" alt="${it.label}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=item-placeholder>이미지 없음</div>'"></div>
+<div class="item-img-box"><img src="${it.img}" alt="${it.label}" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.innerHTML='<div class=item-placeholder>이미지 없음</div>'"></div>
 <div class="item-name">${it.label}${badge}</div></div>`}).join('')}</div>
 <a href="${s.link}" target="_blank" class="skin-link">🔗 Valorant Wiki에서 자세히 보기 →</a>
 </div></div></div>`;
