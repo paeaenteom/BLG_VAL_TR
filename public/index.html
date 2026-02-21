@@ -3953,7 +3953,7 @@ function autoDetectNewSkinYears(){
         bundleImg:cache.bundles?.[year]||'',
         items:[
           {label:'🔫 Classic 스킨',img:cache.skins[year].icon||''},
-          {label:'🃏 플레이어 카드',img:cache.cards?.[year]?.[cache.cards[year].length-1]?.img||'':''},
+          {label:'🃏 플레이어 카드',img:(cache.cards?.[year]&&cache.cards[year].length?cache.cards[year][cache.cards[year].length-1].img:'')},
           {label:'💨 스프레이',img:cache.sprays?.[year]||''},
           {label:'🔗 건 버디',img:''}
         ]
