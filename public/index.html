@@ -3284,6 +3284,9 @@ const CARD_VARIANTS={
   {label:'Large',img:'https://static.wikia.nocookie.net/valorant/images/1/1f/VCT26_x_BLG_Card_Large.png/revision/latest?cb=20260106172255',type:'png'}
 ],
 '2025':[
+  {label:'애니메이션',img:'https://static.wikia.nocookie.net/valorant/images/f/fe/VCT25_x_BLG_Card_animated.gif/revision/latest?cb=20250125050918',type:'gif'},
+  {label:'Small',img:'https://static.wikia.nocookie.net/valorant/images/1/15/VCT25_x_BLG_Card_Small.png/revision/latest?cb=20250107192917',type:'png'},
+  {label:'Wide',img:'https://static.wikia.nocookie.net/valorant/images/a/a7/VCT25_x_BLG_Card_Wide.png/revision/latest?cb=20250107193107',type:'png'},
   {label:'Large',img:'https://static.wikia.nocookie.net/valorant/images/b/bd/VCT25_x_BLG_Card_Large.png/revision/latest?cb=20250107193011',type:'png'}
 ],
 '2024':[
@@ -3422,13 +3425,21 @@ async function fetchSkinData(){
       else if(fname.match(/^(VCT|Bundle_VCT)_x_BLG/i)) year='2024';
       if(!year)return;
 
-      if(!yearGroups[year])yearGroups[year]={classic:null,bundle:null,card:null,spray:null,buddy:null,banner:null,earliest:null};
+      if(!yearGroups[year])yearGroups[year]={classic:null,bundle:null,card:null,cards:[],spray:null,buddy:null,banner:null,earliest:null};
       const fl=fname.toLowerCase();
       // Track earliest upload timestamp per year
       const ts=tsMap[fname];
       if(ts&&(!yearGroups[year].earliest||ts<yearGroups[year].earliest))yearGroups[year].earliest=ts;
       if(fl.includes('bundle'))yearGroups[year].bundle=url;
-      else if(fl.includes('card'))yearGroups[year].card=url;
+      else if(fl.includes('card')){
+        // Collect all card variants
+        if(fl.includes('animated'))yearGroups[year].cards.push({label:'애니메이션',img:url,type:'gif'});
+        else if(fl.includes('small'))yearGroups[year].cards.push({label:'Small',img:url,type:'png'});
+        else if(fl.includes('wide'))yearGroups[year].cards.push({label:'Wide',img:url,type:'png'});
+        else if(fl.includes('large')){yearGroups[year].cards.push({label:'Large',img:url,type:'png'});yearGroups[year].card=url;}
+        else yearGroups[year].card=url;
+        if(!yearGroups[year].card)yearGroups[year].card=url;
+      }
       else if(fl.includes('spray'))yearGroups[year].spray=url;
       else if(fl.includes('buddy'))yearGroups[year].buddy=url;
       else if(fl.includes('banner'))yearGroups[year].banner=url;
@@ -3484,6 +3495,20 @@ async function fetchSkinData(){
     });
 
     skinSyncStatus=newCount>0?'auto':'synced';
+
+    // Auto-populate CARD_VARIANTS from detected card images
+    Object.entries(yearGroups).forEach(([yr,g])=>{
+      if(!g.cards||!g.cards.length)return;
+      // Sort: animated first, then Small, Wide, Large
+      const order={'애니메이션':0,'Small':1,'Wide':2,'Large':3};
+      g.cards.sort((a,b)=>(order[a.label]??9)-(order[b.label]??9));
+      // Only update if wiki has more variants than hardcoded
+      if(!CARD_VARIANTS[yr]||g.cards.length>CARD_VARIANTS[yr].length){
+        CARD_VARIANTS[yr]=g.cards;
+        console.log(`🃏 카드 변형 자동 감지: ${yr} (${g.cards.length}종)`);
+      }
+    });
+
     renderSkins();
   }catch(e){console.log('Skin auto-detect failed:',e.message)}
 }
