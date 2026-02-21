@@ -587,8 +587,8 @@ function _tsvg(tag,bg='#333',fg='#fff'){
 // Fill empty logos with SVG initially (Riot Esports API will replace with real logos)
 const _LOGO_COLORS={KRÜ:'#5b21b6',LGD:'#dc2626',RNG:'#eab308',WBG:'#3b82f6',NIP:'#f59e0b',ASE:'#10b981',NWG:'#6366f1',ME:'#ec4899',Wolves:'#f97316',TBD:'#555',iG:'#b91c1c',iNv:'#059669',NTER:'#0284c7',TTG:'#7c3aed',RA:'#dc2626','4AM':'#eab308',NOP:'#6b7280',JJH:'#f59e0b',NH:'#2563eb',KZ:'#4f46e5',GK:'#14b8a6',DYG:'#f97316',VLG:'#8b5cf6',O3O:'#06b6d4'};
 Object.keys(LOGOS).forEach(k=>{if(!LOGOS[k])LOGOS[k]=_tsvg(k,_LOGO_COLORS[k]||'#333')});
-// Proxy wikia images to avoid hotlink blocking
-function pImg(url){if(!url)return'';if(url.includes('wikia.nocookie.net'))return'/api/proxy?url='+encodeURIComponent(url);return url}
+// Proxy wikia images via wsrv.nl to avoid hotlink blocking
+function pImg(url){if(!url)return'';if(url.includes('wikia.nocookie.net'))return'https://wsrv.nl/?url='+encodeURIComponent(url)+'&default=1';return url}
 function L(tag,sz=''){const u=LOGOS[tag]||logoCache[tag];if(u&&u!=='pending'&&u!==false)return`<img src="${u}" class="tlogo ${sz}" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph ${sz}\\'>${tag[0]}</span>'">`;if(!LOGOS[tag]&&!logoCache[tag])fetchTeamLogo(tag);return`<span class="tlogo-ph ${sz}">${tag[0]||'?'}</span>`}
 const TAG_DISPLAY={NV:'NOVA'};
 function DT(tag){return TAG_DISPLAY[tag]||tag}
