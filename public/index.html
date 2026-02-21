@@ -1416,7 +1416,6 @@ function detHTML(m,tn,il){const narr=fbNarr(m,tn);
 // Check LP detail cache
 const key=Object.keys(liqMatchDetailCache).find(k=>{const[y2,ti2,mi2]=k.split('_');const t2=allData[y2]?.[ti2];return t2&&t2.matches[mi2]===m});
 const liq=key?liqMatchDetailCache[key]:null;
-console.log(`🔍 detHTML: key=${key}, liq=${!!liq}, maps=${liq?.maps?.length||0}, agents=${liq?.maps?.[0]?.t1agents?.length||0}`,liq);
 // Find key for this match (for button id)
 let btnKey='';
 for(const y of Object.keys(allData)){const ts=allData[y];for(let ti=0;ti<ts.length;ti++){const t=ts[ti];for(let mi=0;mi<t.matches.length;mi++){if(t.matches[mi]===m){btnKey=`${y}_${ti}_${mi}`;break}}}}
@@ -1438,7 +1437,6 @@ let lm=null;
 if(liq?.maps){lm=liq.maps.find(g=>g.mapName&&(g.mapName===mp.n||g.mapName.includes(mp.n)))||liq.maps[i]||null}
 const blgAgents=lm?(blgSide===1?lm.t1agents:lm.t2agents):[];
 const oppAgents=lm?(blgSide===1?lm.t2agents:lm.t1agents):[];
-if(i===0)console.log(`🔍 mapHTMLEx: map=${mp.n}, lm=${!!lm}, blgSide=${blgSide}, blgAgents=${blgAgents?.length}, oppAgents=${oppAgents?.length}`,lm);
 h+=`<div class="md"><div class="md-n">MAP ${i+1}</div><div class="md-m">${mp.n}</div><div class="md-bw"><div class="md-bar"><div class="md-bf ${w?'bw':'bl'}" style="width:${p}%"></div></div></div><div class="md-s"><span class="${w?'mws':'mls'}">${mp.b}</span><span class="msp">:</span><span class="${w?'mls':'mws'}">${mp.o}</span></div><div class="md-r ${w?'rw':'rl'}">${w?'W':'L'}</div>`;
 if(blgAgents.length||oppAgents.length){
   h+=`<div class="md-agents"><div class="ag-row"><span class="ag-side blg">BLG</span>${blgAgents.map(a=>agentImg(a,22)).join(' ')}</div>`;
@@ -2063,12 +2061,12 @@ async function loadAgentIcons(){
       agentIconMap[a.displayName.toLowerCase()]=a.displayIcon;
     });
     console.log(`✅ agentIconMap: ${Object.keys(agentIconMap).length}개 에이전트 로드`);
-  }catch(e){agentIconMap={};console.log('❌ agentIcons load fail:',e)}
+  }catch(e){agentIconMap={}}
 }
-loadAgentIcons().then(()=>console.log(`🔍 agentIconMap loaded: ${Object.keys(agentIconMap||{}).length} agents`));
+loadAgentIcons();
 
 function agentImg(name,sz=20){
-  if(!agentIconMap||!name){console.log(`🔍 agentImg: iconMap=${!!agentIconMap}, name=${name}`);return'';}
+  if(!agentIconMap||!name)return'';
   const url=agentIconMap[name.toLowerCase()]||agentIconMap[name.replace('/','').toLowerCase()];
   if(!url)return`<span class="ag-name">${name}</span>`;
   return`<img src="${url}" alt="${name}" title="${name}" style="width:${sz}px;height:${sz}px;border-radius:50%;vertical-align:middle">`;
@@ -2205,10 +2203,14 @@ async function vlrSync(){
       tgs.forEach((tg,ti)=>{
         tg.matches.forEach((m,mi)=>{
           const cacheKey=`${yr}_${ti}_${mi}`;
-          // VLR sync data always takes priority
           const key=m.date+'_'+m.tag;
           const src=stored[key]||vlrNew[key];
           if(!src||!src.d||!src.d.length)return;
+          const hasAgents=src.d.some(md=>(md.b&&md.b.length>0)||(md.o&&md.o.length>0));
+          const existing=liqMatchDetailCache[cacheKey];
+          const existingHasAgents=existing?.maps?.some(mp=>(mp.t1agents&&mp.t1agents.length>0)||(mp.t2agents&&mp.t2agents.length>0));
+          // Don't overwrite if existing has agents but new data doesn't
+          if(existingHasAgents&&!hasAgents)return;
           liqMatchDetailCache[cacheKey]={
             blgSide:1,
             maps:src.d.map(md=>({
@@ -2244,10 +2246,14 @@ function restoreVlrSync(){
     tgs.forEach((tg,ti)=>{
       tg.matches.forEach((m,mi)=>{
         const cacheKey=`${yr}_${ti}_${mi}`;
-        // VLR sync data always takes priority
         const key=m.date+'_'+m.tag;
         const src=stored[key];
         if(!src||!src.d||!src.d.length)return;
+        const hasAgents=src.d.some(md=>(md.b&&md.b.length>0)||(md.o&&md.o.length>0));
+        const existing=liqMatchDetailCache[cacheKey];
+        const existingHasAgents=existing?.maps?.some(mp=>(mp.t1agents&&mp.t1agents.length>0)||(mp.t2agents&&mp.t2agents.length>0));
+        // Don't overwrite if existing has agents but new data doesn't
+        if(existingHasAgents&&!hasAgents)return;
         liqMatchDetailCache[cacheKey]={
           blgSide:1,
           maps:src.d.map(md=>({
