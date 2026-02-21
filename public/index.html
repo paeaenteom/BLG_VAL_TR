@@ -1126,6 +1126,13 @@ function loadSyncedMatches(){
     const raw=localStorage.getItem(LS_KEY);if(!raw)return;
     const saved=JSON.parse(raw);
     let count=0;
+    // Cleanup: normalize tags and remove dupes from cached data
+    Object.values(saved).forEach(tourns=>tourns.forEach(st=>{
+      st.matches=st.matches.filter(sm=>{
+        sm.tag=guessTag(sm.tag)||sm.tag; // normalize XE→XLG etc
+        return true;
+      });
+    }));
     Object.entries(saved).forEach(([yr,tourns])=>{
       if(!allData[yr])allData[yr]=[];
       tourns.forEach(st=>{
@@ -1136,7 +1143,8 @@ function loadSyncedMatches(){
         }
         if(!tg){tg={tournament:st.tournament,intl:st.intl||false,matches:[]};allData[yr].push(tg)}
         st.matches.forEach(sm=>{
-          const exists=tg.matches.some(x=>x.date===sm.date&&(x.tag===sm.tag||x.opp===sm.opp));
+          const exists=tg.matches.some(x=>x.date===sm.date&&(x.tag===sm.tag||x.opp===sm.opp))||
+            allData[yr].some(g2=>g2!==tg&&g2.matches.some(x=>x.date===sm.date&&(x.tag===sm.tag||x.opp===sm.opp)));
           if(!exists){tg.matches.push(sm);count++}
         });
       });
@@ -1741,14 +1749,17 @@ function toggleLiveStream(embedUrl){
 function guessTag(name){
   if(!name)return'?';
   const map={'EDward Gaming':'EDG','FunPlus Phoenix':'FPX','Trace Esports':'TE','Dragon Ranger Gaming':'DRG',
-    'Xi Lai Gaming':'XLG','Wolves Esports':'WOL','All Gamers':'AG','JDG Esports':'JDG','Titan Esports Club':'TEC',
-    'TYLOO':'TYL','Nova Esports':'NV','Paper Rex':'PRX','DRX':'DRX','Gen.G':'GEN','T1':'T1',
-    'Team Liquid':'TL','Fnatic':'FNC','Sentinels':'SEN','NRG Esports':'NRG','G2 Esports':'G2',
-    'Karmine Corp':'KC','LOUD':'LOUD','LEVIATÁN':'LEV','Natus Vincere':'NAVI','Team Vitality':'VIT',
+    'Xi Lai Gaming':'XLG','XLG Esports':'XLG','Wolves Esports':'WOL','All Gamers':'AG','JDG Esports':'JDG','JD Gaming':'JDG','Titan Esports Club':'TEC',
+    'TYLOO':'TYL','Nova Esports':'NV','NOVA Esports':'NV','Paper Rex':'PRX','DRX':'DRX','Gen.G':'GEN','T1':'T1',
+    'Team Liquid':'TL','Fnatic':'FNC','FNATIC':'FNC','Sentinels':'SEN','NRG Esports':'NRG','NRG':'NRG','G2 Esports':'G2',
+    'Karmine Corp':'KC','LOUD':'LOUD','LEVIATÁN':'LEV','Leviatán':'LEV','Natus Vincere':'NAVI','Team Vitality':'VIT',
     'Cloud9':'C9','100 Thieves':'100T','Evil Geniuses':'EG','FURIA':'FURIA','MIBR':'MIBR',
     'Rex Regum Qeon':'RRQ','DetonatioN FocuseMe':'DFM','KRÜ Esports':'KRÜ',
     'LGD Gaming':'LGD','Royal Never Give Up':'RNG','Weibo Gaming':'WBG','Attacking Soul Esports':'ASE',
-    'Nongshim Wolves Gaming':'NWG','Ninjas in Pyjamas':'NIP','Mysterious Esports':'ME','Top Esports':'TES','Bilibili Gaming':'BLG'};
+    'Nongshim Wolves Gaming':'NWG','Nighthunters Gaming':'NWG','Ninjas in Pyjamas':'NIP','Mysterious Esports':'ME','Monarch Esports':'ME','Top Esports':'TES','Bilibili Gaming':'BLG'};
+  // Also check Riot team codes
+  const codeMap={'XE':'XLG','WOL':'WOL','DRG':'DRG','FPX':'FPX','EDG':'EDG','TE':'TE','AG':'AG','JDG':'JDG','TEC':'TEC','TYL':'TYL','NV':'NV'};
+  if(codeMap[name])return codeMap[name];
   return map[name]||name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,3);
 }
 
@@ -2874,7 +2885,7 @@ async function fetchUpcomingSchedule(){
       const time=ev.startTime?new Date(ev.startTime).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'';
       matches.push({event:ev.league?.name||'VCT CN',stage:ev.blockName||'',date,
         dateLabel:date?`${parseInt(date.substring(5,7))}월 ${parseInt(date.substring(8,10))}일`:'TBD',
-        format:`Bo${ev.match.strategy?.count||3}`,opponent:oppTeam.name,oppTag:oppTeam.code||guessTag(oppTeam.name),
+        format:`Bo${ev.match.strategy?.count||3}`,opponent:oppTeam.name,oppTag:oppTeam.code?guessTag(oppTeam.code):guessTag(oppTeam.name),
         time:time?time+' KST':''});
     });
   }catch(e){}
@@ -3154,12 +3165,13 @@ try{
     const date=ev.startTime?.substring(0,10)||'';
     const yr=date.substring(0,4);
     if(!yr)return;
-    const oppTag=oppTeam.code||guessTag(oppTeam.name);
+    const oppTag=oppTeam.code?guessTag(oppTeam.code):guessTag(oppTeam.name);
     const tn=`VCT 2025: China ${ev.tournament?.split?.name||'Stage 1'}`;
     if(!allData[yr])allData[yr]=[];
     let tg=allData[yr].find(t=>t.tournament.includes('China')&&t.tournament.includes(yr.substring(2)));
     if(!tg){tg={tournament:tn,intl:false,matches:[]};allData[yr].unshift(tg)}
-    const ex=tg.matches.some(x=>x.date===date&&x.tag===oppTag);
+    const ex=tg.matches.some(x=>x.date===date&&x.tag===oppTag)||
+      Object.values(allData).flat().some(t=>t.matches.some(x=>x.date===date&&(x.tag===oppTag||x.opp===oppTeam.name||x.opp.includes(oppTeam.name?.split(' ')[0]||'???'))));
     if(!ex){tg.matches.push({date,opp:oppTeam.name,tag:oppTag,stage:ev.blockName||'',fmt:`Bo${ev.match.strategy?.count||3}`,bs,os,r:bs>os?'win':'loss',maps:[]});syncCount++}
   });
 }catch(e){}
@@ -3181,7 +3193,8 @@ try{
         let tg=allData[yr].find(t=>t.tournament===tn);
         if(!tg){tg={tournament:tn,intl:false,matches:[]};allData[yr].unshift(tg)}
         const dt=m.createdAt?m.createdAt.substring(0,10):'';
-        const ex=tg.matches.some(x=>x.date===dt&&x.tag===oppTag);
+        const ex=tg.matches.some(x=>x.date===dt&&x.tag===oppTag)||
+          Object.values(allData).flat().some(t=>t.matches.some(x=>x.date===dt&&(x.tag===oppTag||x.opp===opp)));
         if(!ex){tg.matches.push({date:dt,opp,tag:oppTag,stage:'',fmt:'Bo3',bs,os,r:bs>os?'win':'loss',maps:[]});syncCount++}
       }
     });
