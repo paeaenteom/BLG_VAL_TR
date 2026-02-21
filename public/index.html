@@ -321,6 +321,7 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 .tlogo.big{width:44px;height:44px;border-radius:6px}
 .tlogo-ph.big{width:44px;height:44px;font-size:16px;border-radius:6px}
 .tlogo.sm{width:18px;height:18px;border-radius:3px}
+.tlogo.invert{filter:invert(1) brightness(1.2)}
 .tlogo-ph{display:inline-flex;align-items:center;justify-content:center;border-radius:4px;background:var(--s4);color:var(--dimmer);font-weight:700;font-family:'Orbitron',sans-serif;flex-shrink:0;vertical-align:middle}
 .tlogo-ph{width:24px;height:24px;font-size:9px}
 .tlogo-ph.lg{width:32px;height:32px;font-size:12px}
@@ -655,7 +656,7 @@ const LOGOS={
   ASE:'https://i.ibb.co/hx3yGbd5/Attacking-Soul-Esports-allmode.png',
   NWG:'https://i.ibb.co/gLzgCD0g/6548758279b91.png',
   ME:'https://i.ibb.co/vvhB72bc/63467380720eb.png',
-  iG:'https://i.ibb.co/q8kC281/D0-X1-Br-Ep-Cj3-Ceb4l3m-Mx9-Y-123-NOM7mfquuh-S6-H1e-P35x3-F-y-BS2k-Ecx-Cv-VE1-Xec2-Uac7-KQUC6-AX-c-ZIjazyxw.jpg',
+  iG:'/ig-logo.svg',
   iNv:'https://i.ibb.co/Q3kYgsk1/60d2693b8f4cf.png',
   NTER:'https://i.ibb.co/WWQNG86W/600px-NTER-china-logo.png',
   TTG:'https://i.ibb.co/kVbGVL3m/600px-Totoro-Gaming-2020-allmode.png',
@@ -681,7 +682,8 @@ const _LOGO_COLORS={KRÜ:'#5b21b6',LGD:'#dc2626',RNG:'#eab308',WBG:'#3b82f6',NIP
 Object.keys(LOGOS).forEach(k=>{if(!LOGOS[k])LOGOS[k]=_tsvg(k,_LOGO_COLORS[k]||'#333')});
 // Proxy wikia images via wsrv.nl to avoid hotlink blocking
 function pImg(url){if(!url)return'';if(url.includes('wikia.nocookie.net'))return'https://wsrv.nl/?url='+encodeURIComponent(url)+'&default=1';return url}
-function L(tag,sz=''){const u=LOGOS[tag]||logoCache[tag];if(u&&u!=='pending'&&u!==false)return`<img src="${u}" class="tlogo ${sz}" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph ${sz}\\'>${tag[0]}</span>'">`;if(!LOGOS[tag]&&!logoCache[tag])fetchTeamLogo(tag);return`<span class="tlogo-ph ${sz}">${tag[0]||'?'}</span>`}
+const DARK_LOGOS=new Set(['TES']);
+function L(tag,sz=''){const u=LOGOS[tag]||logoCache[tag];if(u&&u!=='pending'&&u!==false){const inv=DARK_LOGOS.has(tag)?' invert':'';return`<img src="${u}" class="tlogo ${sz}${inv}" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph ${sz}\\'>${tag[0]}</span>'">`}if(!LOGOS[tag]&&!logoCache[tag])fetchTeamLogo(tag);return`<span class="tlogo-ph ${sz}">${tag[0]||'?'}</span>`}
 const TAG_DISPLAY={NV:'NOVA'};
 function DT(tag){return TAG_DISPLAY[tag]||tag}
 
