@@ -587,6 +587,8 @@ function _tsvg(tag,bg='#333',fg='#fff'){
 // Fill empty logos with SVG initially (Riot Esports API will replace with real logos)
 const _LOGO_COLORS={KRÜ:'#5b21b6',LGD:'#dc2626',RNG:'#eab308',WBG:'#3b82f6',NIP:'#f59e0b',ASE:'#10b981',NWG:'#6366f1',ME:'#ec4899',Wolves:'#f97316',TBD:'#555',iG:'#b91c1c',iNv:'#059669',NTER:'#0284c7',TTG:'#7c3aed',RA:'#dc2626','4AM':'#eab308',NOP:'#6b7280',JJH:'#f59e0b',NH:'#2563eb',KZ:'#4f46e5',GK:'#14b8a6',DYG:'#f97316',VLG:'#8b5cf6',O3O:'#06b6d4'};
 Object.keys(LOGOS).forEach(k=>{if(!LOGOS[k])LOGOS[k]=_tsvg(k,_LOGO_COLORS[k]||'#333')});
+// Proxy wikia images to avoid hotlink blocking
+function pImg(url){if(!url)return'';if(url.includes('wikia.nocookie.net'))return'/api/proxy?url='+encodeURIComponent(url);return url}
 function L(tag,sz=''){const u=LOGOS[tag]||logoCache[tag];if(u&&u!=='pending'&&u!==false)return`<img src="${u}" class="tlogo ${sz}" alt="${tag}" onerror="this.outerHTML='<span class=\\'tlogo-ph ${sz}\\'>${tag[0]}</span>'">`;if(!LOGOS[tag]&&!logoCache[tag])fetchTeamLogo(tag);return`<span class="tlogo-ph ${sz}">${tag[0]||'?'}</span>`}
 const TAG_DISPLAY={NV:'NOVA'};
 function DT(tag){return TAG_DISPLAY[tag]||tag}
@@ -3293,12 +3295,13 @@ function openClassicPopup(year){
   ytLink.style.display='none';biliLink.style.display='none';
   const existing=document.getElementById('biliParts');if(existing)existing.remove();
   const cur=CLASSIC_VARIANTS[year]||CLASSIC_VARIANTS[yrs[0]];
-  body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="classicPreview" src="${cur.img}" referrerpolicy="no-referrer" alt="VCT${year.substring(2)} x BLG Classic" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
+  body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="classicPreview" src="${pImg(cur.img)}" alt="VCT${year.substring(2)} x BLG Classic" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
   overlay.classList.add('active');document.body.style.overflow='hidden';
   let h=`<div class="bili-parts" id="biliParts"><div class="bili-parts-label">🔫 연도별 Classic 스킨</div><div class="bili-parts-list">`;
   yrs.forEach((yr,i)=>{
     const active=yr===year?'active':'';
-    h+=`<button class="bili-part-btn ${active}" onclick="document.getElementById('classicPreview').src='${CLASSIC_VARIANTS[yr].img}';document.querySelectorAll('.bili-part-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">VCT${yr.substring(2)} (${yr})</button>`;
+    const pUrl=pImg(CLASSIC_VARIANTS[yr].img);
+    h+=`<button class="bili-part-btn ${active}" onclick="document.getElementById('classicPreview').src='${pUrl}';document.querySelectorAll('.bili-part-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">VCT${yr.substring(2)} (${yr})</button>`;
   });
   h+=`</div></div>`;
   body.parentElement.insertBefore(createEl(h),body.nextSibling);
@@ -3318,13 +3321,14 @@ function openCardPopup(year){
   const existing=document.getElementById('biliParts');if(existing)existing.remove();
   // Show first variant (animated if available)
   const first=variants[0];
-  body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="cardPreview" src="${first.img}" referrerpolicy="no-referrer" alt="${first.label}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
+  body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="cardPreview" src="${pImg(first.img)}" alt="${first.label}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
   overlay.classList.add('active');document.body.style.overflow='hidden';
   // Add variant buttons if >1
   if(variants.length>1){
     let h=`<div class="bili-parts" id="biliParts"><div class="bili-parts-label">🃏 카드 버전</div><div class="bili-parts-list">`;
     variants.forEach((v,i)=>{
-      h+=`<button class="bili-part-btn ${i===0?'active':''}" onclick="document.getElementById('cardPreview').src='${v.img}';document.querySelectorAll('.bili-part-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">${v.label}${v.type==='gif'?' 🎬':''}</button>`;
+      const pUrl=pImg(v.img);
+      h+=`<button class="bili-part-btn ${i===0?'active':''}" onclick="document.getElementById('cardPreview').src='${pUrl}';document.querySelectorAll('.bili-part-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">${v.label}${v.type==='gif'?' 🎬':''}</button>`;
     });
     h+=`</div></div>`;
     body.parentElement.insertBefore(createEl(h),body.nextSibling);
@@ -3554,7 +3558,7 @@ h+=`<div class="skin-card ${isCurrent?'latest':''}" id="${cid}">
 <span class="skin-arrow">▼</span>
 </div></div>
 <div class="skin-preview">
-<div class="skin-img-wrap"><img src="${s.bundleImg||s.img}" alt="${s.name}" loading="lazy" referrerpolicy="no-referrer" onerror="this.src='${s.img}';this.onerror=null"></div>
+<div class="skin-img-wrap"><img src="${pImg(s.bundleImg||s.img)}" alt="${s.name}" loading="lazy" onerror="this.src='${pImg(s.img)}';this.onerror=null"></div>
 <div class="skin-info">
 <div class="skin-name">${s.name}</div>
 <div class="skin-detail">${meta.contents.map(c=>'· '+c).join('<br>')}</div>
@@ -3574,7 +3578,7 @@ const classicClick=isClassic&&CLASSIC_VARIANTS[s.year]?` onclick="openClassicPop
 const cellClick=cardClick||classicClick;
 const badge=isCard&&CARD_VARIANTS[s.year]?' 🔍':isClassic&&CLASSIC_VARIANTS[s.year]?' 🔍':'';
 return`<div class="item-cell"${cellClick}>
-<div class="item-img-box"><img src="${it.img}" alt="${it.label}" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.innerHTML='<div class=item-placeholder>이미지 없음</div>'"></div>
+<div class="item-img-box"><img src="${pImg(it.img)}" alt="${it.label}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=item-placeholder>이미지 없음</div>'"></div>
 <div class="item-name">${it.label}${badge}</div></div>`}).join('')}</div>
 <a href="${s.link}" target="_blank" class="skin-link">🔗 Valorant Wiki에서 자세히 보기 →</a>
 </div></div></div>`;
