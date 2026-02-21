@@ -3293,6 +3293,35 @@ const CARD_VARIANTS={
   {label:'Large',img:'https://static.wikia.nocookie.net/valorant/images/7/79/VCT_x_BLG_Card_Large.png/revision/latest?cb=20240514190744',type:'png'}
 ]
 };
+// Classic skin variants by year
+const CLASSIC_VARIANTS={
+'2026':{img:'https://static.wikia.nocookie.net/valorant/images/5/58/VCT26_x_BLG_Classic.png/revision/latest?cb=20260106171511'},
+'2025':{img:'https://static.wikia.nocookie.net/valorant/images/1/19/VCT25_x_BLG_Classic.png/revision/latest?cb=20250107193406'},
+'2024':{img:'https://static.wikia.nocookie.net/valorant/images/c/c4/VCT_x_BLG_Classic.png/revision/latest?cb=20240514190840'}
+};
+function openClassicPopup(year){
+  const overlay=document.getElementById('vodOverlay');
+  const body=document.getElementById('vodBody');
+  const title=document.getElementById('vodTitle');
+  const matchLabel=document.getElementById('vodMatchLabel');
+  const ytLink=document.getElementById('vodYtLink');
+  const biliLink=document.getElementById('vodBiliLink');
+  title.textContent=`VCT x BLG Classic 스킨`;
+  const yrs=Object.keys(CLASSIC_VARIANTS).sort((a,b)=>b-a);
+  matchLabel.textContent=`${yrs.length}년도 비교`;
+  ytLink.style.display='none';biliLink.style.display='none';
+  const existing=document.getElementById('biliParts');if(existing)existing.remove();
+  const cur=CLASSIC_VARIANTS[year]||CLASSIC_VARIANTS[yrs[0]];
+  body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="classicPreview" src="${cur.img}" alt="VCT${year.substring(2)} x BLG Classic" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
+  overlay.classList.add('active');document.body.style.overflow='hidden';
+  let h=`<div class="bili-parts" id="biliParts"><div class="bili-parts-label">🔫 연도별 Classic 스킨</div><div class="bili-parts-list">`;
+  yrs.forEach((yr,i)=>{
+    const active=yr===year?'active':'';
+    h+=`<button class="bili-part-btn ${active}" onclick="document.getElementById('classicPreview').src='${CLASSIC_VARIANTS[yr].img}';document.querySelectorAll('.bili-part-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">VCT${yr.substring(2)} (${yr})</button>`;
+  });
+  h+=`</div></div>`;
+  body.parentElement.insertBefore(createEl(h),body.nextSibling);
+}
 function openCardPopup(year){
   const variants=CARD_VARIANTS[year];if(!variants||!variants.length)return;
   const overlay=document.getElementById('vodOverlay');
@@ -3502,10 +3531,17 @@ async function fetchSkinData(){
       // Sort: animated first, then Small, Wide, Large
       const order={'애니메이션':0,'Small':1,'Wide':2,'Large':3};
       g.cards.sort((a,b)=>(order[a.label]??9)-(order[b.label]??9));
-      // Only update if wiki has more variants than hardcoded
       if(!CARD_VARIANTS[yr]||g.cards.length>CARD_VARIANTS[yr].length){
         CARD_VARIANTS[yr]=g.cards;
         console.log(`🃏 카드 변형 자동 감지: ${yr} (${g.cards.length}종)`);
+      }
+    });
+
+    // Auto-populate CLASSIC_VARIANTS from detected classic images
+    Object.entries(yearGroups).forEach(([yr,g])=>{
+      if(g.classic&&!CLASSIC_VARIANTS[yr]){
+        CLASSIC_VARIANTS[yr]={img:g.classic};
+        console.log(`🔫 클래식 스킨 자동 감지: ${yr}`);
       }
     });
 
@@ -3551,10 +3587,14 @@ ${meta.cnRank?`<span class="sk-tag rank">🏆 ${meta.cnRank}</span>`:''}
 <div class="item-label">📦 캡슐 구성품</div>
 <div class="items-grid">${s.items.map(it=>{
 const isCard=it.label.includes('카드');
+const isClassic=it.label.includes('Classic')||it.label.includes('클래식');
 const cardClick=isCard&&CARD_VARIANTS[s.year]?` onclick="openCardPopup('${s.year}')" style="cursor:pointer" title="클릭하면 카드 버전 보기"`:'';
-return`<div class="item-cell"${cardClick}>
+const classicClick=isClassic&&CLASSIC_VARIANTS[s.year]?` onclick="openClassicPopup('${s.year}')" style="cursor:pointer" title="클릭하면 연도별 비교"`:'';
+const cellClick=cardClick||classicClick;
+const badge=isCard&&CARD_VARIANTS[s.year]?' 🔍':isClassic&&CLASSIC_VARIANTS[s.year]?' 🔍':'';
+return`<div class="item-cell"${cellClick}>
 <div class="item-img-box"><img src="${it.img}" alt="${it.label}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=item-placeholder>이미지 없음</div>'"></div>
-<div class="item-name">${it.label}${isCard&&CARD_VARIANTS[s.year]?' 🔍':''}</div></div>`}).join('')}</div>
+<div class="item-name">${it.label}${badge}</div></div>`}).join('')}</div>
 <a href="${s.link}" target="_blank" class="skin-link">🔗 Valorant Wiki에서 자세히 보기 →</a>
 </div></div></div>`;
 });
