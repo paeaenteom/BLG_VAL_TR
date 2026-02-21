@@ -3686,9 +3686,60 @@ fetchLiveData().then(()=>setInterval(fetchLiveData,5*60*1000));
 fetchSkinData();
 
 // Valorant-API.com에서 BLG 스킨/버디/스프레이 displayIcon 가져오기 (CORS OK, 프록시 불필요)
+// === Valorant API 스킨 데이터 (localStorage 캐시) ===
+const VAL_API_CACHE_KEY='blg_val_api_cache';
+function applyValApiCache(cache){
+  // Classic skins + levels
+  if(cache.skins){
+    Object.entries(cache.skins).forEach(([year,data])=>{
+      CLASSIC_VARIANTS[year]={img:data.icon};
+      if(data.levels)CLASSIC_LEVELS[year]=data.levels;
+      blgSkinData.forEach(s=>{
+        if(s.year!==year)return;
+        s.items.forEach(it=>{if(it.label.includes('Classic')||it.label.includes('클래식'))it.img=data.icon});
+      });
+    });
+  }
+  // Cards
+  if(cache.cards){
+    Object.entries(cache.cards).forEach(([year,variants])=>{
+      CARD_VARIANTS[year]=variants;
+      const mainImg=variants.find(v=>v.label==='Large')?.img||variants[0]?.img;
+      if(mainImg)blgSkinData.forEach(s=>{
+        if(s.year!==year)return;
+        s.items.forEach(it=>{if(it.label.includes('카드'))it.img=mainImg});
+      });
+    });
+  }
+  // Sprays
+  if(cache.sprays){
+    Object.entries(cache.sprays).forEach(([year,icon])=>{
+      blgSkinData.forEach(s=>{
+        if(s.year!==year)return;
+        s.items.forEach(it=>{if(it.label.includes('스프레이'))it.img=icon});
+      });
+    });
+  }
+  // Bundles
+  if(cache.bundles){
+    Object.entries(cache.bundles).forEach(([year,icon])=>{
+      blgSkinData.forEach(s=>{if(s.year===year)s.bundleImg=icon});
+    });
+  }
+  renderSkins();
+}
+// Load from cache immediately
+try{
+  const cached=JSON.parse(localStorage.getItem(VAL_API_CACHE_KEY));
+  if(cached){
+    applyValApiCache(cached);
+    console.log('💾 Valorant API 캐시 로드:',Object.keys(cached.skins||{}).length,'스킨,',Object.keys(cached.cards||{}).length,'카드');
+  }
+}catch(e){}
 async function fetchValApiSkins(){
+  const newCache={skins:{},cards:{},sprays:{},bundles:{}};
   try{
-    // Fetch skins (no locale param - ensures BLG name matching works)
+    // Fetch skins
     const r=await fetch('https://valorant-api.com/v1/weapons/skins');
     const d=await r.json();
     if(!d?.data)return;
@@ -3698,46 +3749,33 @@ async function fetchValApiSkins(){
     });
     console.log(`🔫 Valorant API: ${blgSkins.length}개 BLG 스킨 발견:`,blgSkins.map(s=>s.displayName));
     blgSkins.forEach(skin=>{
-      // Determine year from name: "VCT 2026 x BLG" or "VCT26 x BLG" → 2026, "VCT x BLG" → 2024
       let year=null;
       const yrM=skin.displayName.match(/VCT\s*(\d{2,4})\s*x\s*BLG/i);
-      if(yrM){
-        const y=yrM[1];
-        year=y.length===4?y:'20'+y;
-      }else if(/VCT\s*x\s*BLG/i.test(skin.displayName)){
-        year='2024';
-      }
-      if(!year){console.log('⚠️ 연도 추출 실패:',skin.displayName);return;}
-      // Get displayIcon - try levels[0] first, then skin root
+      if(yrM){const y=yrM[1];year=y.length===4?y:'20'+y;}
+      else if(/VCT\s*x\s*BLG/i.test(skin.displayName))year='2024';
+      if(!year)return;
       const icon=skin.levels?.[0]?.displayIcon||skin.displayIcon;
-      if(!icon){console.log('⚠️ 아이콘 없음:',skin.displayName);return;}
-      console.log(`🔫 ${year} Classic: ${icon.substring(0,60)}...`);
-      // Update CLASSIC_VARIANTS (API images = no hotlink issues)
+      if(!icon)return;
       CLASSIC_VARIANTS[year]={img:icon};
-      // Collect level data (icons + videos)
-      if(skin.levels){
-        CLASSIC_LEVELS[year]=skin.levels.map((l,i)=>{
-          let type='';
-          if(l.levelItem){
-            const t=l.levelItem.split('::')[1]||'';
-            if(t==='SoundEffects')type='사운드';
-            else if(t==='KillBanner')type='킬배너';
-            else if(t==='Animation')type='애니메이션';
-            else type=t;
-          }
-          return{lv:i,icon:l.displayIcon||icon,video:l.streamedVideo||null,type};
-        });
-        console.log(`🔫 ${year} Classic 레벨: ${CLASSIC_LEVELS[year].length}개 (비디오: ${CLASSIC_LEVELS[year].filter(l=>l.video).length})`);
-      }
-      // Update blgSkinData items
+      const levels=skin.levels?skin.levels.map((l,i)=>{
+        let type='';
+        if(l.levelItem){
+          const t=l.levelItem.split('::')[1]||'';
+          if(t==='SoundEffects')type='사운드';
+          else if(t==='KillBanner')type='킬배너';
+          else if(t==='Animation')type='애니메이션';
+          else type=t;
+        }
+        return{lv:i,icon:l.displayIcon||icon,video:l.streamedVideo||null,type};
+      }):[];
+      if(levels.length)CLASSIC_LEVELS[year]=levels;
+      newCache.skins[year]={icon,levels};
       blgSkinData.forEach(s=>{
         if(s.year!==year)return;
-        s.items.forEach(it=>{
-          if(it.label.includes('Classic')||it.label.includes('클래식'))it.img=icon;
-        });
+        s.items.forEach(it=>{if(it.label.includes('Classic')||it.label.includes('클래식'))it.img=icon});
       });
     });
-    // Also fetch player cards
+    // Fetch cards
     await new Promise(r=>setTimeout(r,300));
     const cr=await fetch('https://valorant-api.com/v1/playercards');
     const cd=await cr.json();
@@ -3750,21 +3788,17 @@ async function fetchValApiSkins(){
         if(yrM){const y=yrM[1];year=y.length===4?y:'20'+y;}
         else if(/VCT\s*x\s*BLG/i.test(card.displayName))year='2024';
         if(!year)return;
-        // Build card variants from API (no hotlink)
         const variants=[];
         if(card.animationGif)variants.push({label:'애니메이션',img:card.animationGif,type:'gif'});
         if(card.smallArt)variants.push({label:'Small',img:card.smallArt,type:'png'});
         if(card.wideArt)variants.push({label:'Wide',img:card.wideArt,type:'png'});
         if(card.largeArt)variants.push({label:'Large',img:card.largeArt,type:'png'});
-        if(variants.length)CARD_VARIANTS[year]=variants;
-        // Update blgSkinData card item image
+        if(variants.length){CARD_VARIANTS[year]=variants;newCache.cards[year]=variants;}
         const mainImg=card.largeArt||card.displayIcon;
-        if(mainImg){
-          blgSkinData.forEach(s=>{
-            if(s.year!==year)return;
-            s.items.forEach(it=>{if(it.label.includes('카드'))it.img=mainImg});
-          });
-        }
+        if(mainImg)blgSkinData.forEach(s=>{
+          if(s.year!==year)return;
+          s.items.forEach(it=>{if(it.label.includes('카드'))it.img=mainImg});
+        });
       });
     }
     // Fetch sprays
@@ -3781,6 +3815,7 @@ async function fetchValApiSkins(){
         if(!year)return;
         const icon=spray.fullTransparentIcon||spray.displayIcon;
         if(icon){
+          newCache.sprays[year]=icon;
           blgSkinData.forEach(s=>{
             if(s.year!==year)return;
             s.items.forEach(it=>{if(it.label.includes('스프레이'))it.img=icon});
@@ -3788,12 +3823,11 @@ async function fetchValApiSkins(){
         }
       });
     }
-    // Fetch bundles → 미리보기 이미지 자동 업데이트
+    // Fetch bundles
     await new Promise(r=>setTimeout(r,300));
     const br=await fetch('https://valorant-api.com/v1/bundles');
     const bd=await br.json();
     if(bd?.data){
-      // UUID→연도 매핑 (기존 번들)
       const BUNDLE_YEAR_MAP={
         '440c7d5d-4581-8a56-4966-d98385dd50f0':'2024',
         'da157e17-4a4f-3620-6122-2b8c7850c1b4':'2025',
@@ -3801,12 +3835,10 @@ async function fetchValApiSkins(){
       };
       const blgBundles=bd.data.filter(b=>(b.displayName||'').toLowerCase().includes('blg'));
       console.log(`📦 Valorant API: ${blgBundles.length}개 BLG 번들 발견`);
-      const knownUuids=new Set(Object.keys(BUNDLE_YEAR_MAP));
       blgBundles.forEach(bundle=>{
         if(!bundle.displayIcon)return;
         let year=BUNDLE_YEAR_MAP[bundle.uuid];
         if(!year){
-          // 새 번들 → 이름에서 연도 추출 시도, 안 되면 최신 연도+1
           const yrM=bundle.displayName.match(/VCT(\d{2})\s*x\s*BLG/i);
           if(yrM)year='20'+yrM[1];
           else{
@@ -3815,11 +3847,14 @@ async function fetchValApiSkins(){
           }
           console.log(`📦 새 BLG 번들 감지: ${bundle.uuid} → ${year}`);
         }
-        blgSkinData.forEach(s=>{
-          if(s.year===year)s.bundleImg=bundle.displayIcon;
-        });
+        newCache.bundles[year]=bundle.displayIcon;
+        blgSkinData.forEach(s=>{if(s.year===year)s.bundleImg=bundle.displayIcon});
       });
     }
+    // Save to localStorage
+    try{localStorage.setItem(VAL_API_CACHE_KEY,JSON.stringify(newCache));
+      console.log('💾 Valorant API 캐시 저장 완료');
+    }catch(e){}
     renderSkins();
     console.log('✅ Valorant API 이미지 업데이트 완료');
   }catch(e){console.log('Valorant API skin fetch failed:',e.message)}
