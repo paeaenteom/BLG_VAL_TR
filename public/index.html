@@ -965,7 +965,7 @@ const baselineData = {
     {date:"2023-09-27",opp:"Trace Esports",tag:"TE",stage:"LR2",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Lotus",b:10,o:13,r:"loss"},{n:"Ascent",b:5,o:13,r:"loss"}]}
   ]},
   {tournament:"China Evolution Series: Act 2",intl:false,matches:[
-    {date:"2023-10-05",opp:"Xi Lai Gaming",tag:"XLG",stage:"OQ-C R2",fmt:"Bo1",bs:1,os:0,r:"win",maps:[{n:"TBD",b:13,o:9,r:"win"}]},
+    {date:"2023-10-05",opp:"Xi Lai Gaming",tag:"XLG",stage:"OQ-C R2",fmt:"Bo1",bs:1,os:0,r:"win",maps:[{n:"Lotus",b:13,o:9,r:"win"}]},
     {date:"2023-10-06",opp:"Dragon Ranger Gaming",tag:"DRG",stage:"OQ URo16",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Breeze",b:11,o:13,r:"loss"},{n:"Bind",b:9,o:13,r:"loss"}]},
     {date:"2023-10-07",opp:"All Gamers",tag:"AG",stage:"OQ LR1",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Ascent",b:13,o:4,r:"win"},{n:"Lotus",b:13,o:1,r:"win"}]},
     {date:"2023-10-08",opp:"Top Esports",tag:"TES",stage:"OQ LR2",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Split",b:13,o:6,r:"win"},{n:"Lotus",b:13,o:9,r:"win"}]},
@@ -1044,10 +1044,10 @@ const baselineData = {
     {date:"2025-03-13",opp:"Xi Lai Gaming",tag:"XLG",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Pearl",b:8,o:13,r:"loss"},{n:"Icebox",b:13,o:9,r:"win"},{n:"Fracture",b:13,o:8,r:"win"}]},
     {date:"2025-03-23",opp:"JDG Esports",tag:"JDG",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Pearl",b:13,o:10,r:"win"},{n:"Icebox",b:5,o:13,r:"loss"},{n:"Fracture",b:13,o:8,r:"win"}]},
     {date:"2025-03-30",opp:"All Gamers",tag:"AG",stage:"Regular Season",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Pearl",b:13,o:4,r:"win"},{n:"Fracture",b:13,o:5,r:"win"}]},
-    {date:"2025-04-04",opp:"Wolves Esports",tag:"WOL",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Lotus",b:10,o:13,r:"loss"},{n:"Haven",b:13,o:5,r:"win"},{n:"Ascent",b:13,o:4,r:"win"}]},
+    {date:"2025-04-04",opp:"Wolves Esports",tag:"WOL",stage:"Regular Season",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Haven",b:13,o:5,r:"win"},{n:"Ascent",b:13,o:4,r:"win"},{n:"Lotus",b:10,o:13,r:"loss"}]},
     {date:"2025-04-12",opp:"Trace Esports",tag:"TE",stage:"Regular Season",fmt:"Bo3",bs:1,os:2,r:"loss",maps:[{n:"Haven",b:4,o:13,r:"loss"},{n:"Ascent",b:13,o:5,r:"win"},{n:"Split",b:1,o:13,r:"loss"}]},
     {date:"2025-04-19",opp:"Wolves Esports",tag:"WOL",stage:"UB Semi",fmt:"Bo3",bs:0,os:2,r:"loss",maps:[{n:"Split",b:8,o:13,r:"loss"},{n:"Haven",b:8,o:13,r:"loss"}]},
-    {date:"2025-04-20",opp:"Trace Esports",tag:"TE",stage:"LR2",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Fracture",b:13,o:8,r:"win"},{n:"Pearl",b:13,o:6,r:"win"}]},
+    {date:"2025-04-20",opp:"Trace Esports",tag:"TE",stage:"LR2",fmt:"Bo3",bs:2,os:0,r:"win",maps:[{n:"Fracture",b:13,o:8,r:"win"},{n:"Lotus",b:13,o:4,r:"win"}]},
     {date:"2025-05-02",opp:"EDward Gaming",tag:"EDG",stage:"LR3",fmt:"Bo3",bs:2,os:1,r:"win",maps:[{n:"Fracture",b:8,o:13,r:"loss"},{n:"Icebox",b:13,o:8,r:"win"},{n:"Pearl",b:13,o:11,r:"win"}]},
     {date:"2025-05-03",opp:"Wolves Esports",tag:"WOL",stage:"LBF",fmt:"Bo5",bs:3,os:0,r:"win",maps:[{n:"Pearl",b:13,o:9,r:"win"},{n:"Lotus",b:13,o:11,r:"win"},{n:"Icebox",b:13,o:7,r:"win"}]},
     {date:"2025-05-04",opp:"Xi Lai Gaming",tag:"XLG",stage:"GF",fmt:"Bo5",bs:1,os:3,r:"loss",maps:[{n:"Fracture",b:13,o:15,r:"loss"},{n:"Lotus",b:10,o:13,r:"loss"},{n:"Pearl",b:13,o:8,r:"win"},{n:"Haven",b:12,o:14,r:"loss"}]}
@@ -1239,9 +1239,9 @@ function mapHTMLEx(maps,liq,match){if(!maps||!maps.length)return'<div style="pad
 const blgSide=liq?.blgSide||1;
 let h=`<div class="dms"><div class="dmt">맵별 상세 결과</div>`;
 maps.forEach((mp,i)=>{const w=mp.r==='win',t=(mp.b||0)+(mp.o||0)||1,p=Math.round(((mp.b||0)/t)*100);
-// Find matching LP map
+// Find matching agent map by NAME first, index fallback
 let lm=null;
-if(liq?.maps){lm=liq.maps[i]||(liq.maps.find(g=>g.mapName&&g.mapName.includes(mp.n)))}
+if(liq?.maps){lm=liq.maps.find(g=>g.mapName&&(g.mapName===mp.n||g.mapName.includes(mp.n)))||liq.maps[i]||null}
 const blgAgents=lm?(blgSide===1?lm.t1agents:lm.t2agents):[];
 const oppAgents=lm?(blgSide===1?lm.t2agents:lm.t1agents):[];
 h+=`<div class="md"><div class="md-n">MAP ${i+1}</div><div class="md-m">${mp.n}</div><div class="md-bw"><div class="md-bar"><div class="md-bf ${w?'bw':'bl'}" style="width:${p}%"></div></div></div><div class="md-s"><span class="${w?'mws':'mls'}">${mp.b}</span><span class="msp">:</span><span class="${w?'mls':'mws'}">${mp.o}</span></div><div class="md-r ${w?'rw':'rl'}">${w?'W':'L'}</div>`;
@@ -1451,7 +1451,7 @@ function getBiliSearchUrl(opp, date, tournament){
   return `https://search.bilibili.com/all?keyword=${encodeURIComponent(q)}&from_source=webtop_search`;
 }
 
-async function toggleMapAgents(el,y,ti,mi,mapIdx){
+async function toggleMapAgents(el,y,ti,mi,mapIdx,mapName){
   // Close any existing popup
   const existing=document.querySelector('.map-agents-popup');
   if(existing){const same=existing._src===el;existing.remove();if(same)return}
@@ -1469,9 +1469,10 @@ async function toggleMapAgents(el,y,ti,mi,mapIdx){
     const blgMatches=await liqFetchTournDetail(lpPage);
     if(blgMatches){liq=liqMatchLookup(blgMatches,m);liqMatchDetailCache[key]=liq}
   }
-  if(!liq||!liq.maps||!liq.maps[mapIdx]){pop.innerHTML='<div class="ma-err">데이터 없음</div>';setTimeout(()=>pop.remove(),1500);return}
+  if(!liq||!liq.maps){pop.innerHTML='<div class="ma-err">데이터 없음</div>';setTimeout(()=>pop.remove(),1500);return}
+  const lm=liq.maps.find(g=>g.mapName&&(g.mapName===mapName||g.mapName.includes(mapName)))||liq.maps[mapIdx];
+  if(!lm){pop.innerHTML='<div class="ma-err">데이터 없음</div>';setTimeout(()=>pop.remove(),1500);return}
   const side=liq.blgSide||1;
-  const lm=liq.maps[mapIdx];
   const ba=side===1?lm.t1agents:lm.t2agents;
   const oa=side===1?lm.t2agents:lm.t1agents;
   let h='';
@@ -1498,7 +1499,7 @@ h+=`<div class="mw" id="${id}"><div class="mc ${m.r}" onclick="toggleDetail('${i
 <div class="tl">${L('BLG')}<div><div class="tm blg">BLG</div><div class="tt">Bilibili Gaming</div></div></div>
 <div class="scc"><div class="sc"><span class="${w?'ws':'ls'}">${m.bs}</span><span class="sp">:</span><span class="${w?'ls':'ws'}">${m.os}</span></div><div class="sm">${m.fmt} · ${m.date}</div><span class="rb ${m.r}">${w?'WIN':'LOSS'}</span></div>
 <div class="tr"><div><div class="tm">${DT(m.tag)}</div><div class="tt">${m.opp}</div></div>${L(m.tag)}</div>
-${m.maps&&m.maps.length?'<div class="mr">'+m.maps.map((p,mi2)=>`<span class="mp ${p.r==='win'?'mw2':'ml2'}" onclick="event.stopPropagation();toggleMapAgents(this,${y},${ti},${mi},${mi2})">${p.n} ${p.b}-${p.o}</span>`).join('')+'</div>':''}
+${m.maps&&m.maps.length?'<div class="mr">'+m.maps.map((p,mi2)=>`<span class="mp ${p.r==='win'?'mw2':'ml2'}" onclick="event.stopPropagation();toggleMapAgents(this,${y},${ti},${mi},${mi2},'${p.n}')">${p.n} ${p.b}-${p.o}</span>`).join('')+'</div>':''}
 <div class="sr"><span class="sb">${m.stage}</span>${m._liq?'<span class="sb liq-tag" title="Liquipedia 자동 동기화">📡</span>':''}<span class="vod-btn" onclick="event.stopPropagation();openVod('${vodQEnc}','${vodLabel}','${directBvid}')" title="VOD 직접 보기">📺 VOD</span>${directBvid?`<a class="vod-btn" href="https://www.bilibili.com/video/${directBvid}" target="_blank" onclick="event.stopPropagation()" style="background:rgba(0,161,214,.1);border-color:rgba(0,161,214,.2);color:#00a1d6" title="Bilibili에서 보기">🅱 B站</a>`:`<a class="vod-btn" href="${biliSearchUrl}" target="_blank" onclick="event.stopPropagation()" style="background:rgba(0,161,214,.1);border-color:rgba(0,161,214,.2);color:#00a1d6" title="Bilibili 검색">🅱 B站</a>`}</div>
 <span class="ea">▼</span></div><div class="dp"><div class="di"></div></div></div>`});h+=`</div>`});h+=`</div>`});
 main.innerHTML=h}
