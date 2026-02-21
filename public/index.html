@@ -1871,7 +1871,7 @@ function notifyLiveStart(opp,event){
 function notifyLiveEnd(opp){
   if(!notifEnabled)return;
   playNotifSound('info');
-  showToast('🏁','경기 종료',`vs ${opp} · VOD 자동 검색 중...`,6000);
+  showToast('🏁','경기 종료',`vs ${opp} · VOD/에이전트/결과 자동 수집 중...`,6000);
   sendBrowserNotif('🏁 BLG 경기 종료',`vs ${opp} · B站 VOD 곧 업데이트`);
 }
 
@@ -1959,7 +1959,13 @@ async function checkLiveMatch(){
   }catch(e){}
   const prev=currentLive;currentLive=found||null;renderLiveBanner();
   if(!prev&&currentLive)notifyLiveStart(currentLive.team2||'TBD',currentLive.tournament_name||'VCT');
-  if(prev&&!currentLive){notifyLiveEnd(prev.team2||'');setTimeout(()=>checkNewBiliVods(),60000);setTimeout(()=>checkNewBiliVods(),300000)}
+  if(prev&&!currentLive){notifyLiveEnd(prev.team2||'');
+    // 경기 종료 → 자동 파이프라인: VOD + LP + VLR 에이전트
+    setTimeout(()=>checkNewBiliVods(),60000);setTimeout(()=>checkNewBiliVods(),300000);
+    setTimeout(()=>liqAutoSync(),120000); // 2분 후 LP 결과 수집
+    setTimeout(()=>autoVlrSync(),180000); // 3분 후 에이전트 수집
+    setTimeout(()=>{checkNewBiliVods();autoVlrSync()},600000); // 10분 후 재시도
+  }
 }
 
 function renderLiveBanner(){
@@ -3874,7 +3880,93 @@ setTimeout(fetchStandings,4000);setInterval(fetchStandings,10*60*1000);
 // Upcoming schedule: fetch at load + every 10min
 setTimeout(fetchUpcomingSchedule,6000);setInterval(fetchUpcomingSchedule,10*60*1000);
 
-setTimeout(async()=>{await liqAutoSync();setTimeout(fetchLiquipediaLogosDeferred,5000)},12000);// LP auto-sync first, then logos
+// === 자동 파이프라인: LP sync → VLR agent sync → VOD 매칭 ===
+setTimeout(async()=>{
+  await liqAutoSync();
+  setTimeout(fetchLiquipediaLogosDeferred,5000);
+  // 자동 VLR 에이전트 동기화 (LP sync 후)
+  setTimeout(autoVlrSync,3000);
+},12000);
+// VLR 자동 동기화: 10분마다
+setInterval(autoVlrSync,10*60*1000);
+
+// === 자동 VLR 에이전트 동기화 (무음) ===
+async function autoVlrSync(){
+  try{
+    const resp=await fetch('/api/vlr-sync?limit=15');
+    if(!resp.ok)return;
+    const json=await resp.json();
+    if(!json.ok||!json.data)return;
+    const vlrNew=json.data;
+    const stored=JSON.parse(localStorage.getItem('vlr_sync_data')||'{}');
+    const oldCount=Object.keys(stored).length;
+    Object.assign(stored,vlrNew);
+    localStorage.setItem('vlr_sync_data',JSON.stringify(stored));
+    localStorage.setItem('vlr_sync_ts',json.ts);
+    // Apply to match detail cache
+    let newCnt=0;
+    for(const[yr,tgs]of Object.entries(allData)){
+      tgs.forEach((tg,ti)=>{
+        tg.matches.forEach((m,mi)=>{
+          const cacheKey=`${yr}_${ti}_${mi}`;
+          const key=m.date+'_'+m.tag;
+          const src=stored[key]||vlrNew[key];
+          if(!src||!src.d||!src.d.length)return;
+          const hasAgents=src.d.some(md=>(md.b&&md.b.length>0)||(md.o&&md.o.length>0));
+          const existing=liqMatchDetailCache[cacheKey];
+          const existingHasAgents=existing?.maps?.some(mp=>(mp.t1agents&&mp.t1agents.length>0)||(mp.t2agents&&mp.t2agents.length>0));
+          if(existingHasAgents&&!hasAgents)return;
+          liqMatchDetailCache[cacheKey]={
+            blgSide:1,
+            maps:src.d.map(md=>({mapName:md.m,t1agents:md.b||[],t2agents:md.o||[],score1:md.bs||0,score2:md.os||0}))
+          };
+          newCnt++;
+        });
+      });
+    }
+    const newDataCount=Object.keys(stored).length-oldCount;
+    if(newCnt>0||newDataCount>0){
+      renderAll();
+      console.log(`🤖 VLR 자동 동기화: ${newDataCount}개 신규, ${newCnt}경기 적용`);
+      // Update sync badge
+      const badge=document.getElementById('syncBadge');
+      if(badge)badge.textContent=`VLR ${new Date().toLocaleTimeString('ko',{hour:'2-digit',minute:'2-digit'})}`;
+    }
+  }catch(e){}
+}
+
+// === 새 연도 스킨 자동 감지 ===
+function autoDetectNewSkinYears(){
+  try{
+    const cache=JSON.parse(localStorage.getItem(VAL_API_CACHE_KEY));
+    if(!cache||!cache.skins)return;
+    const existingYears=new Set(blgSkinData.map(s=>s.year));
+    Object.keys(cache.skins).forEach(year=>{
+      if(existingYears.has(year))return;
+      // New year detected! Auto-add entry
+      console.log(`🆕 새 스킨 연도 감지: ${year} — 자동 추가`);
+      const meta=getSkinMeta(year);
+      const newEntry={
+        year,
+        name:`VCT${year.substring(2)} x BLG 클래식`,
+        img:cache.bundles?.[year]||cache.skins[year].icon||'',
+        bundleImg:cache.bundles?.[year]||'',
+        items:[
+          {label:'🔫 Classic 스킨',img:cache.skins[year].icon||''},
+          {label:'🃏 플레이어 카드',img:cache.cards?.[year]?.[cache.cards[year].length-1]?.img||'':''},
+          {label:'💨 스프레이',img:cache.sprays?.[year]||''},
+          {label:'🔗 건 버디',img:''}
+        ]
+      };
+      blgSkinData.unshift(newEntry);
+      renderSkins();
+      showToast('🆕 새로운 스킨',`${year}년 BLG 스킨이 자동으로 추가되었습니다!`);
+    });
+  }catch(e){}
+}
+// fetchValApiSkins 완료 후 실행
+const _origFetchVal=fetchValApiSkins;
+fetchValApiSkins=async function(){await _origFetchVal();autoDetectNewSkinYears();};
 </script>
 
 <!-- VOD MODAL -->
