@@ -2552,7 +2552,7 @@ async function liqAutoSync(){
         });
       }catch(e){console.log(`📡 LP fetch fail: ${t.lpPage}`,e.message)}
       // Rate limit: 2.5s between requests
-      if(i<toFetch.length-1)await new Promise(r=>setTimeout(r,2500));
+      if(i<toFetch.length-1)await new Promise(r=>setTimeout(r,5000));
     }
     // Step 4: Save to localStorage & re-render
     if(liqSyncNew.length>0)saveSyncedMatches(liqSyncNew);
@@ -2790,7 +2790,7 @@ async function liqFetchRoster(){
   let pi=null,oi=null,z='';
   for(const s of ss){if(s.line==='Player Roster')z='p';if(s.line==='Organization')z='o';if(s.line==='Active'&&z==='p'&&!pi)pi=s.index;if(s.line==='Active'&&z==='o'&&!oi)oi=s.index;}
 
-  await new Promise(r=>setTimeout(r,2500));
+  await new Promise(r=>setTimeout(r,5000));
   const pd=await liqFetch({action:'parse',page:'Bilibili_Gaming',prop:'text',section:pi||'4'});
   const ph=pd?.parse?.text?.['*']||'';if(!ph)return null;
   const r=liqParseRoster(ph);
@@ -2956,7 +2956,7 @@ async function fetchTransfers(){
       }
     }
     if(!tfIdx)return;
-    await new Promise(r=>setTimeout(r,2500));
+    await new Promise(r=>setTimeout(r,5000));
     const td=await liqFetch({action:'parse',page:'Bilibili_Gaming',prop:'text',section:tfIdx});
     if(!td?.parse?.text?.['*'])return;
     const parsed=liqParseTransfers(td.parse.text['*']);
