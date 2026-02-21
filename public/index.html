@@ -45,6 +45,7 @@ body::before{content:'';position:fixed;inset:0;background:url("data:image/svg+xm
 .export-actions{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--s3);flex-wrap:wrap}
 .export-btn{padding:8px 16px;border-radius:6px;border:1px solid var(--s3);background:var(--s2);color:var(--bright);font-size:11px;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .15s}
 .export-btn:hover{background:var(--s3)}.export-btn.copy{border-color:rgba(0,229,160,.3);color:#00e5a0}.export-btn.dl{border-color:rgba(77,139,255,.3);color:#4d8bff}.export-btn.clear{border-color:rgba(255,77,106,.3);color:#ff4d6a;margin-left:auto}
+.export-tabs{display:flex;gap:0;border-bottom:1px solid var(--s3)}.export-tab{flex:1;padding:10px 12px;background:none;border:none;color:var(--dim);font-size:11px;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .15s;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:1px}.export-tab:hover{color:var(--bright);background:var(--s2)}.export-tab.active{color:var(--cyan);border-bottom-color:var(--cyan);background:var(--s2)}.export-tab .etcnt{font-size:9px;color:var(--dimmer);margin-left:4px}
 @keyframes lp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
 .live-text{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim)}
 .refresh-btn{padding:4px 12px;border-radius:6px;border:1px solid var(--brd2);background:transparent;color:var(--blue);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s}
@@ -554,10 +555,28 @@ const LOGOS={
   DFM:VE+"1675669923678_190px-DetonatioN_FocusMe_2022_darkmode1.png",
   // Teams without hardcoded logos (filled by Riot Esports API or SVG fallback)
   KRÜ:VE+"1630017626481_kru.png",
-  // Minor/defunct teams — LP API proxy fallback will fetch logos
-  LGD:'',RNG:'',WBG:'',NIP:'',ASE:'',NWG:'',ME:'',
-  iG:'',iNv:'',NTER:'',TTG:'',RA:'','4AM':'',NOP:'',
-  JJH:'',NH:'',KZ:'',GK:'',DYG:'',VLG:'',O3O:'',
+  // Minor/defunct teams — VLR.gg owcdn 하드코딩
+  LGD:'https://owcdn.net/img/6549c2de5598b.png',
+  RNG:'https://owcdn.net/img/63eb523921a3e.png',
+  WBG:'https://owcdn.net/img/62232bd14e5d7.png',
+  NIP:'https://owcdn.net/img/62b947039ec5e.png',
+  ASE:'https://owcdn.net/img/62bd5058300a4.png',
+  NWG:'https://owcdn.net/img/6548758279b91.png',
+  ME:'https://owcdn.net/img/63467380720eb.png',
+  iG:'https://owcdn.net/img/63f2578bacdd1.png',
+  iNv:'https://owcdn.net/img/60d2693b8f4cf.png',
+  NTER:'https://owcdn.net/img/60d26a046c0ac.png',
+  TTG:'https://owcdn.net/img/63eb56072ae3f.png',
+  RA:'https://owcdn.net/img/63eb5aa842f05.png',
+  '4AM':'https://owcdn.net/img/63eb546aaf548.png',
+  NOP:'https://owcdn.net/img/612fcc4c7992d.png',
+  JJH:'https://owcdn.net/img/642afe112f136.png',
+  NH:'https://owcdn.net/img/640722a56e28f.png',
+  KZ:'https://owcdn.net/img/63eb5b7da623b.png',
+  GK:'https://owcdn.net/img/640e7f9282b65.png',
+  DYG:'https://owcdn.net/img/63f2618ba8574.png',
+  VLG:'',O3O:'https://owcdn.net/img/6340079e4549b.png',
+  TES:'https://owcdn.net/img/64f57e9bb00b5.png',
 };
 // Generate SVG text logo for teams without images
 function _tsvg(tag,bg='#333',fg='#fff'){
@@ -669,7 +688,7 @@ async function fetchRiotTeamLogos(){
     // fetchLiquipediaLogos() is called separately via fetchLiquipediaLogosDeferred
   }catch(e){console.log('Team logo fetch failed:',e.message)}
 }
-function fetchLiquipediaLogosDeferred(){fetchLiquipediaLogos()}
+function fetchLiquipediaLogosDeferred(){console.log('🖼️ LP 로고: 모든 팀 하드코딩됨 — 스킵')}
 
 // Liquipedia commons API → proxy로 이미지 서빙 (403 우회)
 async function fetchLiquipediaLogos(){
@@ -1186,29 +1205,195 @@ function exportBaselineCode(){
   return code;
 }
 function showExportModal(){
-  const code=exportBaselineCode();
+  const baseCode=exportBaselineCode();
+  const agentCode=exportAgentCode();
+  const vodCode=exportVodCode();
   const saved=localStorage.getItem(LS_KEY);
   const savedCount=saved?Object.values(JSON.parse(saved)).reduce((s,ts)=>s+ts.reduce((s2,t)=>s2+t.matches.length,0),0):0;
   const totalCount=Object.values(allData).reduce((s,ya)=>s+ya.reduce((s2,t)=>s2+t.matches.length,0),0);
+  const agentStats=_countAgentData();
+  const vodStats=_countVodData();
   let h=`<div class="export-modal" onclick="if(event.target===this)this.remove()">
   <div class="export-box">
     <div class="export-header">
-      <span>📋 baselineData 내보내기</span>
+      <span>📋 데이터 내보내기</span>
       <button onclick="this.closest('.export-modal').remove()" style="background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer">✕</button>
     </div>
-    <div class="export-stats">
-      <span>전체 ${totalCount}경기</span>
-      <span>·</span>
-      <span style="color:var(--green)">LP 캐시 ${savedCount}경기</span>
+    <div class="export-tabs">
+      <button class="export-tab active" onclick="_switchExportTab(this,'baseline')">📊 경기<span class="etcnt">${totalCount}</span></button>
+      <button class="export-tab" onclick="_switchExportTab(this,'agent')">🎯 에이전트<span class="etcnt">${agentStats.total}맵</span></button>
+      <button class="export-tab" onclick="_switchExportTab(this,'vod')">🅱 VOD<span class="etcnt">${vodStats.total}</span></button>
     </div>
-    <textarea class="export-code" id="exportCode" readonly>${code.replace(/</g,'&lt;')}</textarea>
-    <div class="export-actions">
-      <button class="export-btn copy" onclick="navigator.clipboard.writeText(document.getElementById('exportCode').value);this.textContent='✓ 복사됨';setTimeout(()=>this.textContent='📋 코드 복사',1500)">📋 코드 복사</button>
-      <button class="export-btn dl" onclick="const b=new Blob([document.getElementById('exportCode').value],{type:'text/javascript'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='baselineData.js';a.click()">💾 JS 다운로드</button>
+    <div class="export-stats" id="exportStats">
+      <span>전체 ${totalCount}경기</span><span>·</span><span style="color:var(--green)">LP 캐시 ${savedCount}경기</span>
+    </div>
+    <textarea class="export-code" id="exportCode" readonly>${baseCode.replace(/</g,'&lt;')}</textarea>
+    <div class="export-actions" id="exportActions">
+      <button class="export-btn copy" onclick="_copyExport()">📋 코드 복사</button>
+      <button class="export-btn dl" onclick="_dlExport()">💾 JS 다운로드</button>
       <button class="export-btn clear" onclick="localStorage.removeItem('${LS_KEY}');this.textContent='✓ 삭제됨';setTimeout(()=>this.textContent='🗑 캐시 삭제',1500)">🗑 캐시 삭제</button>
     </div>
   </div></div>`;
   document.body.insertAdjacentHTML('beforeend',h);
+  window._exportData={baseline:baseCode,agent:agentCode,vod:vodCode};
+  window._exportTab='baseline';
+}
+function _switchExportTab(el,tab){
+  el.parentElement.querySelectorAll('.export-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  window._exportTab=tab;
+  const code=window._exportData[tab]||'';
+  document.getElementById('exportCode').value=code;
+  const stats=document.getElementById('exportStats');
+  const agentStats=_countAgentData();
+  const vodStats=_countVodData();
+  if(tab==='baseline'){
+    const saved=localStorage.getItem(LS_KEY);
+    const sc=saved?Object.values(JSON.parse(saved)).reduce((s,ts)=>s+ts.reduce((s2,t)=>s2+t.matches.length,0),0):0;
+    const tc=Object.values(allData).reduce((s,ya)=>s+ya.reduce((s2,t)=>s2+t.matches.length,0),0);
+    stats.innerHTML=`<span>전체 ${tc}경기</span><span>·</span><span style="color:var(--green)">LP 캐시 ${sc}경기</span>`;
+  }else if(tab==='agent'){
+    stats.innerHTML=`<span>전체 ${agentStats.total}맵</span><span>·</span><span style="color:var(--green)">하드코딩 ${agentStats.hardcoded}맵</span><span>·</span><span style="color:var(--cyan)">캐시 ${agentStats.cached}맵</span>`;
+  }else{
+    stats.innerHTML=`<span>전체 ${vodStats.total}개</span><span>·</span><span style="color:var(--green)">하드코딩 ${vodStats.hardcoded}개</span><span>·</span><span style="color:var(--cyan)">자동발견 ${vodStats.auto}개</span>`;
+  }
+}
+function _copyExport(){
+  const el=document.getElementById('exportCode');
+  navigator.clipboard.writeText(el.value);
+  const btn=event.target;btn.textContent='✓ 복사됨';setTimeout(()=>btn.textContent='📋 코드 복사',1500);
+}
+function _dlExport(){
+  const tab=window._exportTab||'baseline';
+  const fnames={baseline:'baselineData.js',agent:'vlr-agents.js',vod:'biliVodMap.js'};
+  const code=document.getElementById('exportCode').value;
+  const b=new Blob([code],{type:'text/javascript'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fnames[tab]||'export.js';a.click();
+}
+
+// ===== 에이전트 내보내기 =====
+function exportAgentCode(){
+  // Merge: VLR_AGENT_DATA (hardcoded) + liqMatchDetailCache (runtime) + vlr_sync_data (localStorage)
+  const merged={};
+  // 1) Start with hardcoded
+  if(typeof VLR_AGENT_DATA!=='undefined')Object.assign(merged,VLR_AGENT_DATA);
+  // 2) Overlay from vlr_sync_data localStorage
+  try{const stored=JSON.parse(localStorage.getItem('vlr_sync_data')||'{}');Object.assign(merged,stored)}catch(e){}
+  // 3) Overlay from liqMatchDetailCache (runtime LP/VLR data)
+  for(const[yr,tgs]of Object.entries(allData)){
+    tgs.forEach((tg,ti)=>{
+      tg.matches.forEach((m,mi)=>{
+        const cacheKey=`${yr}_${ti}_${mi}`;
+        const liq=liqMatchDetailCache[cacheKey];
+        if(!liq||!liq.maps||!liq.maps.length)return;
+        const key=m.date+'_'+m.tag;
+        // Only add if has actual agent data (not empty arrays)
+        const hasAgents=liq.maps.some(mp=>(mp.t1agents&&mp.t1agents.length>0)||(mp.t2agents&&mp.t2agents.length>0));
+        if(!hasAgents)return;
+        const blgFirst=liq.blgSide===1;
+        merged[key]={p:'',d:liq.maps.map(mp=>({
+          m:mp.mapName||'',
+          b:blgFirst?(mp.t1agents||[]):(mp.t2agents||[]),
+          o:blgFirst?(mp.t2agents||[]):(mp.t1agents||[]),
+          bs:blgFirst?(mp.score1||0):(mp.score2||0),
+          os:blgFirst?(mp.score2||0):(mp.score1||0)
+        }))};
+      });
+    });
+  }
+  // Generate code
+  const keys=Object.keys(merged).sort();
+  let code='const VLR_AGENT_DATA={\n';
+  keys.forEach(k=>{
+    const v=merged[k];if(!v||!v.d)return;
+    code+=JSON.stringify(k)+':'+JSON.stringify(v)+',\n';
+  });
+  code+='};\n';
+  return code;
+}
+function _countAgentData(){
+  let hardcoded=0,total=0;
+  if(typeof VLR_AGENT_DATA!=='undefined'){
+    Object.values(VLR_AGENT_DATA).forEach(v=>{if(v&&v.d)hardcoded+=v.d.length});
+  }
+  for(const[yr,tgs]of Object.entries(allData)){
+    tgs.forEach((tg,ti)=>{
+      tg.matches.forEach((m,mi)=>{
+        const ck=`${yr}_${ti}_${mi}`;
+        const liq=liqMatchDetailCache[ck];
+        if(liq&&liq.maps)total+=liq.maps.filter(mp=>(mp.t1agents&&mp.t1agents.length>0)||(mp.t2agents&&mp.t2agents.length>0)).length;
+      });
+    });
+  }
+  return{hardcoded,cached:Math.max(0,total-hardcoded),total};
+}
+
+// ===== VOD 내보내기 + localStorage =====
+const LS_VOD_KEY='blg_vod_cache';
+function exportVodCode(){
+  // Collect unique BV IDs with their match info
+  const entries={};// bvid → {tag,date}
+  for(const[k,v]of Object.entries(biliVodMap)){
+    if(typeof v==='string'&&v.startsWith('BV')){
+      // k is "BLG vs TAG DATE" or "TAG vs BLG DATE"
+      const m=k.match(/(?:BLG vs (\S+)|(\S+) vs BLG) (\d{4}-\d{2}-\d{2})/);
+      if(m){
+        const tag=m[1]||m[2],date=m[3];
+        if(!entries[v])entries[v]={tag,date};
+      }
+    }else if(typeof v==='object'&&v.tag){
+      entries[k]={tag:v.tag,date:v.date};
+    }
+  }
+  // Sort by date desc
+  const sorted=Object.entries(entries).sort(([,a],[,b])=>b.date.localeCompare(a.date));
+  let code='const biliVodMap={\n';
+  let prevYear='';
+  sorted.forEach(([bv,info])=>{
+    const yr=info.date.substring(0,4);
+    if(yr!==prevYear){code+=`// ${yr}\n`;prevYear=yr}
+    code+=`'BLG vs ${info.tag} ${info.date}':'${bv}','${info.tag} vs BLG ${info.date}':'${bv}',\n`;
+  });
+  code+='};\n';
+  return code;
+}
+function _countVodData(){
+  const hardcodedBvs=new Set(),allBvs=new Set();
+  // Count hardcoded (entries that existed on page load)
+  for(const[k,v]of Object.entries(biliVodMap)){
+    if(typeof v==='string'&&v.startsWith('BV'))allBvs.add(v);
+  }
+  // newVodBvids tracks auto-discovered ones
+  const autoCnt=newVodBvids.size;
+  const totalUnique=allBvs.size;
+  return{hardcoded:totalUnique-autoCnt,auto:autoCnt,total:totalUnique};
+}
+// VOD localStorage: save auto-found VODs
+function saveVodCache(){
+  try{
+    const toSave={};
+    newVodBvids.forEach(bv=>{
+      const info=biliVodMap[bv];
+      if(info&&info.tag)toSave[bv]={tag:info.tag,date:info.date};
+    });
+    // Merge with existing cache
+    const existing=JSON.parse(localStorage.getItem(LS_VOD_KEY)||'{}');
+    Object.assign(existing,toSave);
+    localStorage.setItem(LS_VOD_KEY,JSON.stringify(existing));
+  }catch(e){}
+}
+function restoreVodCache(){
+  try{
+    const cached=JSON.parse(localStorage.getItem(LS_VOD_KEY)||'{}');
+    let cnt=0;
+    for(const[bv,info]of Object.entries(cached)){
+      if(!info.tag||!info.date)continue;
+      if(Object.values(biliVodMap).includes(bv))continue;
+      const k1=`BLG vs ${info.tag} ${info.date}`,k2=`${info.tag} vs BLG ${info.date}`;
+      biliVodMap[k1]=bv;biliVodMap[k2]=bv;biliVodMap[bv]=info;
+      cnt++;
+    }
+    if(cnt)console.log(`🅱 VOD 캐시 복원: ${cnt}개`);
+  }catch(e){}
 }
 loadSyncedMatches();
 
@@ -1800,7 +1985,7 @@ async function checkNewBiliVods(){
       if(oppTag&&dateStr){const k1=`BLG vs ${oppTag} ${dateStr}`,k2=`${oppTag} vs BLG ${dateStr}`;biliVodMap[k1]=bv;biliVodMap[k2]=bv;biliVodMap[bv]={tag:oppTag,date:dateStr};newVodBvids.add(bv);added++}
     }
   });
-  if(added>0){renderMatches();showVodNotification(added);notifyNewVod(added)}
+  if(added>0){saveVodCache();renderMatches();showVodNotification(added);notifyNewVod(added)}
 }
 
 function showVodNotification(count){
@@ -3214,6 +3399,7 @@ btn.disabled=false;ico.innerHTML='↻'}
 
 preloadAgents();
 restoreVlrSync();
+restoreVodCache();
 renderAll();
 fetchLiveData().then(()=>setInterval(fetchLiveData,5*60*1000));
 fetchSkinData();
