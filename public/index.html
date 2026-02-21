@@ -1971,10 +1971,10 @@ function preloadAgents(){
     tgs.forEach((tg,ti)=>{
       tg.matches.forEach((m,mi)=>{
         const cacheKey=`${yr}_${ti}_${mi}`;
-        if(liqMatchDetailCache[cacheKey])return;
         const key=m.date+'_'+m.tag;
         const src=VLR_AGENT_DATA[key];
         if(!src||!src.d||!src.d.length)return;
+        // VLR agent data ALWAYS takes priority (has accurate per-map agents)
         liqMatchDetailCache[cacheKey]={
           blgSide:1,
           maps:src.d.map(md=>({
@@ -2017,7 +2017,7 @@ async function vlrSync(){
       tgs.forEach((tg,ti)=>{
         tg.matches.forEach((m,mi)=>{
           const cacheKey=`${yr}_${ti}_${mi}`;
-          if(liqMatchDetailCache[cacheKey])return;
+          // VLR sync data always takes priority
           const key=m.date+'_'+m.tag;
           const src=stored[key]||vlrNew[key];
           if(!src||!src.d||!src.d.length)return;
@@ -2056,7 +2056,7 @@ function restoreVlrSync(){
     tgs.forEach((tg,ti)=>{
       tg.matches.forEach((m,mi)=>{
         const cacheKey=`${yr}_${ti}_${mi}`;
-        if(liqMatchDetailCache[cacheKey])return;
+        // VLR sync data always takes priority
         const key=m.date+'_'+m.tag;
         const src=stored[key];
         if(!src||!src.d||!src.d.length)return;
