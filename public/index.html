@@ -3282,6 +3282,8 @@ const CLASSIC_VARIANTS={
 '2025':{img:'https://static.wikia.nocookie.net/valorant/images/1/19/VCT25_x_BLG_Classic.png/revision/latest?cb=20250107193406'},
 '2024':{img:'https://static.wikia.nocookie.net/valorant/images/c/c4/VCT_x_BLG_Classic.png/revision/latest?cb=20240514190840'}
 };
+// Level data per year (populated by fetchValApiSkins)
+const CLASSIC_LEVELS={};
 function openClassicPopup(year){
   const overlay=document.getElementById('vodOverlay');
   const body=document.getElementById('vodBody');
@@ -3289,22 +3291,58 @@ function openClassicPopup(year){
   const matchLabel=document.getElementById('vodMatchLabel');
   const ytLink=document.getElementById('vodYtLink');
   const biliLink=document.getElementById('vodBiliLink');
-  title.textContent=`VCT x BLG Classic 스킨`;
-  const yrs=Object.keys(CLASSIC_VARIANTS).sort((a,b)=>b-a);
-  matchLabel.textContent=`${yrs.length}년도 비교`;
+  title.textContent=`VCT${year==='2024'?'':year.substring(2)} x BLG Classic`;
   ytLink.style.display='none';biliLink.style.display='none';
   const existing=document.getElementById('biliParts');if(existing)existing.remove();
-  const cur=CLASSIC_VARIANTS[year]||CLASSIC_VARIANTS[yrs[0]];
-  body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="classicPreview" src="${pImg(cur.img)}" alt="VCT${year.substring(2)} x BLG Classic" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
+  const levels=CLASSIC_LEVELS[year]||[];
+  const cv=CLASSIC_VARIANTS[year];
+  if(!levels.length&&cv){
+    // Fallback: no level data yet, show image only
+    matchLabel.textContent='이미지';
+    body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="classicPreview" src="${pImg(cv.img)}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
+    overlay.classList.add('active');document.body.style.overflow='hidden';
+    return;
+  }
+  // Determine which levels to show: 2024=0,1,2  2025+=1,2
+  const startLv=year==='2024'?0:1;
+  const showLevels=levels.filter(l=>l.lv>=startLv);
+  if(!showLevels.length&&cv){
+    matchLabel.textContent='이미지';
+    body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="classicPreview" src="${pImg(cv.img)}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
+    overlay.classList.add('active');document.body.style.overflow='hidden';
+    return;
+  }
+  const first=showLevels[0];
+  matchLabel.textContent=`레벨 ${startLv}~${showLevels[showLevels.length-1].lv}`;
+  // Show video if available, else image
+  if(first.video){
+    body.innerHTML=`<video id="classicPreview" src="${first.video}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;background:#0a0a12"></video>`;
+  }else{
+    body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="classicPreview" src="${first.icon}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
+  }
   overlay.classList.add('active');document.body.style.overflow='hidden';
-  let h=`<div class="bili-parts" id="biliParts"><div class="bili-parts-label">🔫 연도별 Classic 스킨</div><div class="bili-parts-list">`;
-  yrs.forEach((yr,i)=>{
-    const active=yr===year?'active':'';
-    const pUrl=pImg(CLASSIC_VARIANTS[yr].img);
-    h+=`<button class="bili-part-btn ${active}" onclick="document.getElementById('classicPreview').src='${pUrl}';document.querySelectorAll('.bili-part-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">VCT${yr.substring(2)} (${yr})</button>`;
+  // Level switcher buttons
+  let h=`<div class="bili-parts" id="biliParts"><div class="bili-parts-label">🔫 스킨 레벨</div><div class="bili-parts-list">`;
+  showLevels.forEach((lv,i)=>{
+    const active=i===0?'active':'';
+    const lvLabel=lv.lv===0?'기본':lv.type||`Lv${lv.lv}`;
+    h+=`<button class="bili-part-btn ${active}" onclick="switchClassicLevel(${i},'${year}')">Lv${lv.lv} ${lvLabel}${lv.video?' 🎬':''}</button>`;
   });
   h+=`</div></div>`;
   body.parentElement.insertBefore(createEl(h),body.nextSibling);
+}
+function switchClassicLevel(idx,year){
+  const startLv=year==='2024'?0:1;
+  const levels=(CLASSIC_LEVELS[year]||[]).filter(l=>l.lv>=startLv);
+  const lv=levels[idx];if(!lv)return;
+  const body=document.getElementById('vodBody');
+  if(lv.video){
+    body.innerHTML=`<video id="classicPreview" src="${lv.video}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;background:#0a0a12"></video>`;
+  }else{
+    body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:#0a0a12;padding:16px;box-sizing:border-box"><img id="classicPreview" src="${lv.icon}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px"></div>`;
+  }
+  document.querySelectorAll('.bili-part-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.bili-part-btn')[idx]?.classList.add('active');
 }
 function openCardPopup(year){
   const variants=CARD_VARIANTS[year];if(!variants||!variants.length)return;
@@ -3574,7 +3612,7 @@ ${meta.cnRank?`<span class="sk-tag rank">🏆 ${meta.cnRank}</span>`:''}
 const isCard=it.label.includes('카드');
 const isClassic=it.label.includes('Classic')||it.label.includes('클래식');
 const cardClick=isCard&&CARD_VARIANTS[s.year]?` onclick="openCardPopup('${s.year}')" style="cursor:pointer" title="클릭하면 카드 버전 보기"`:'';
-const classicClick=isClassic&&CLASSIC_VARIANTS[s.year]?` onclick="openClassicPopup('${s.year}')" style="cursor:pointer" title="클릭하면 연도별 비교"`:'';
+const classicClick=isClassic&&CLASSIC_VARIANTS[s.year]?` onclick="openClassicPopup('${s.year}')" style="cursor:pointer" title="클릭하면 스킨 레벨 보기"`:'';
 const cellClick=cardClick||classicClick;
 const badge=isCard&&CARD_VARIANTS[s.year]?' 🔍':isClassic&&CLASSIC_VARIANTS[s.year]?' 🔍':'';
 return`<div class="item-cell"${cellClick}>
@@ -3667,6 +3705,21 @@ async function fetchValApiSkins(){
       if(!icon)return;
       // Update CLASSIC_VARIANTS (API images = no hotlink issues)
       CLASSIC_VARIANTS[year]={img:icon};
+      // Collect level data (icons + videos)
+      if(skin.levels){
+        CLASSIC_LEVELS[year]=skin.levels.map((l,i)=>{
+          let type='';
+          if(l.levelItem){
+            const t=l.levelItem.split('::')[1]||'';
+            if(t==='SoundEffects')type='사운드';
+            else if(t==='KillBanner')type='킬배너';
+            else if(t==='Animation')type='애니메이션';
+            else type=t;
+          }
+          return{lv:i,icon:l.displayIcon||icon,video:l.streamedVideo||null,type};
+        });
+        console.log(`🔫 ${year} Classic 레벨: ${CLASSIC_LEVELS[year].length}개 (비디오: ${CLASSIC_LEVELS[year].filter(l=>l.video).length})`);
+      }
       // Update blgSkinData items
       blgSkinData.forEach(s=>{
         if(s.year!==year)return;
