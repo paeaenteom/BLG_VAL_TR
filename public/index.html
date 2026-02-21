@@ -2087,7 +2087,14 @@ async function loadLiqDetail(y,ti,mi){
   const blgMatches=await liqFetchTournDetail(lpPage);
   if(!blgMatches){if(btnEl)btnEl.textContent='❌ 로드 실패';return}
   const found=liqMatchLookup(blgMatches,m);
-  liqMatchDetailCache[key]=found;
+  // Only overwrite if existing cache has no agent data or no maps
+  const existing=liqMatchDetailCache[key];
+  if(!existing||!existing.maps||!existing.maps.some(g=>(g.t1agents||[]).length>0)){
+    liqMatchDetailCache[key]=found;
+  } else if(found){
+    // Merge: keep VLR agents, update other liq metadata
+    liqMatchDetailCache[key].veto=found.veto||liqMatchDetailCache[key].veto;
+  }
   // Re-render detail
   const wid=`w_${y}_${ti}_${mi}`;
   const panel=document.getElementById(wid)?.querySelector('.di');
@@ -2218,9 +2225,9 @@ async function liqAutoSync(){
             liqSyncNew.push({yr,tournament:tg.tournament,intl:tg.intl||false,match:newMatch});
             console.log(`📡 +NEW: ${mDate} BLG vs ${oppName} ${bs}:${os} (${t.event})`);
           }
-          // Also populate liqMatchDetailCache for agent display
+          // Also populate liqMatchDetailCache for agent display (only if VLR data doesn't exist)
           const matchKey=findMatchKey(yr,tg,oppName,oppTag,mDate);
-          if(matchKey){const blgSide2=blgIsT1?1:2;liqMatchDetailCache[matchKey]={...lm,blgSide:blgSide2}}
+          if(matchKey&&!liqMatchDetailCache[matchKey]){const blgSide2=blgIsT1?1:2;liqMatchDetailCache[matchKey]={...lm,blgSide:blgSide2}}
         });
       }catch(e){console.log(`📡 LP fetch fail: ${t.lpPage}`,e.message)}
       // Rate limit: 2.5s between requests
@@ -2228,6 +2235,8 @@ async function liqAutoSync(){
     }
     // Step 4: Save to localStorage & re-render
     if(liqSyncNew.length>0)saveSyncedMatches(liqSyncNew);
+    // Re-run preloadAgents to update cache keys after index shifts
+    preloadAgents();restoreVlrSync();
     renderAll();
     liqSyncStatus='done';updateSyncBadge();
     console.log(`📡 LP AutoSync 완료: ${liqSyncCount}개 새 경기 추가`);
