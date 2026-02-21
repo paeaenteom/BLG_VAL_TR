@@ -3338,7 +3338,7 @@ function openCardPopup(year){
 const STATIC_SKINS=[
 {year:'2026',name:'VCT26 x BLG 클래식',
 img:'https://static.wikia.nocookie.net/valorant/images/5/58/VCT26_x_BLG_Classic.png/revision/latest?cb=20260106171511',
-bundleImg:'https://static.wikia.nocookie.net/valorant/images/8/8d/Bundle_VCT26_x_BLG.png/revision/latest?cb=20260107150813',
+bundleImg:'https://media.valorant-api.com/bundles/b8d4f311-4928-a160-cb43-329f7dd9cdbb/displayicon.png',
 items:[
 {label:'🔫 Classic 스킨',img:'https://static.wikia.nocookie.net/valorant/images/5/58/VCT26_x_BLG_Classic.png/revision/latest?cb=20260106171511'},
 {label:'🃏 플레이어 카드',img:'https://static.wikia.nocookie.net/valorant/images/1/1f/VCT26_x_BLG_Card_Large.png/revision/latest?cb=20260106172255'},
@@ -3347,7 +3347,7 @@ items:[
 ],link:'https://valorant.fandom.com/wiki/VCT_x_BLG_Capsule'},
 {year:'2025',name:'VCT25 x BLG 클래식',
 img:'https://static.wikia.nocookie.net/valorant/images/1/19/VCT25_x_BLG_Classic.png/revision/latest?cb=20250107193406',
-bundleImg:'https://static.wikia.nocookie.net/valorant/images/0/06/Bundle_VCT25_x_BLG.png/revision/latest?cb=20250109150334',
+bundleImg:'https://media.valorant-api.com/bundles/da157e17-4a4f-3620-6122-2b8c7850c1b4/displayicon.png',
 items:[
 {label:'🔫 Classic 스킨',img:'https://static.wikia.nocookie.net/valorant/images/1/19/VCT25_x_BLG_Classic.png/revision/latest?cb=20250107193406'},
 {label:'🃏 플레이어 카드',img:'https://static.wikia.nocookie.net/valorant/images/b/bd/VCT25_x_BLG_Card_Large.png/revision/latest?cb=20250107193011'},
@@ -3356,7 +3356,7 @@ items:[
 ],link:'https://valorant.fandom.com/wiki/VCT_x_BLG_Capsule'},
 {year:'2024',name:'VCT x BLG 클래식',
 img:'https://static.wikia.nocookie.net/valorant/images/c/c4/VCT_x_BLG_Classic.png/revision/latest?cb=20240514190840',
-bundleImg:'https://static.wikia.nocookie.net/valorant/images/0/0d/Bundle_VCT_x_BLG.png/revision/latest?cb=20240515122408',
+bundleImg:'https://media.valorant-api.com/bundles/440c7d5d-4581-8a56-4966-d98385dd50f0/displayicon.png',
 items:[
 {label:'🔫 Classic 스킨',img:'https://static.wikia.nocookie.net/valorant/images/c/c4/VCT_x_BLG_Classic.png/revision/latest?cb=20240514190840'},
 {label:'🔗 건 버디',img:'https://media.valorant-api.com/buddies/2dc4e4c0-491e-43c8-f51b-f69f6ff16e37/displayicon.png'}
@@ -3724,6 +3724,38 @@ async function fetchValApiSkins(){
             s.items.forEach(it=>{if(it.label.includes('스프레이'))it.img=icon});
           });
         }
+      });
+    }
+    // Fetch bundles → 미리보기 이미지 자동 업데이트
+    await new Promise(r=>setTimeout(r,300));
+    const br=await fetch('https://valorant-api.com/v1/bundles?language=ko-KR');
+    const bd=await br.json();
+    if(bd?.data){
+      // UUID→연도 매핑 (기존 번들)
+      const BUNDLE_YEAR_MAP={
+        '440c7d5d-4581-8a56-4966-d98385dd50f0':'2024',
+        'da157e17-4a4f-3620-6122-2b8c7850c1b4':'2025',
+        'b8d4f311-4928-a160-cb43-329f7dd9cdbb':'2026'
+      };
+      const blgBundles=bd.data.filter(b=>(b.displayName||'').toLowerCase().includes('blg'));
+      console.log(`📦 Valorant API: ${blgBundles.length}개 BLG 번들 발견`);
+      const knownUuids=new Set(Object.keys(BUNDLE_YEAR_MAP));
+      blgBundles.forEach(bundle=>{
+        if(!bundle.displayIcon)return;
+        let year=BUNDLE_YEAR_MAP[bundle.uuid];
+        if(!year){
+          // 새 번들 → 이름에서 연도 추출 시도, 안 되면 최신 연도+1
+          const yrM=bundle.displayName.match(/VCT(\d{2})\s*x\s*BLG/i);
+          if(yrM)year='20'+yrM[1];
+          else{
+            const maxYr=Math.max(...blgSkinData.map(s=>parseInt(s.year)||0));
+            year=String(maxYr>0?maxYr+1:new Date().getFullYear());
+          }
+          console.log(`📦 새 BLG 번들 감지: ${bundle.uuid} → ${year}`);
+        }
+        blgSkinData.forEach(s=>{
+          if(s.year===year)s.bundleImg=bundle.displayIcon;
+        });
       });
     }
     renderSkins();
