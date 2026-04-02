@@ -1,0 +1,12 @@
+{
+  "buildCommand": "",
+  "outputDirectory": "public",
+  "functions": {
+    "api/proxy.js": {
+      "maxDuration": 20
+    },
+    "api/vlr-sync.js": {
+      "maxDuration": 60
+    }
+  }
+}
